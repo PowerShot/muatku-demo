@@ -257,3 +257,51 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; transition-delay: 0s !important; }
 }
+
+/* ---- navigation libre · panneau repliable · carte seule (pattern K) ---- */
+#touch { display: none; }
+button.grab { display: block; position: relative; padding: 0; border: 0; cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent; }
+button.grab::before { content: ''; position: absolute; inset: -12px -90px -10px; }
+.card-pos .grab { position: absolute; top: 6px; left: 50%; margin: 0 0 0 -19px; }
+.card-pos > *, .sheet > * { transition: opacity .3s; }
+.peek { position: absolute; left: 0; right: 0; top: 14px; height: 40px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 0; background: none; text-align: left; color: var(--ink); font: 500 12px/1.2 var(--sans); opacity: 0; visibility: hidden; touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pk-t { min-width: 0; font: 600 17px/1.1 var(--display); font-variation-settings: 'SOFT' 100; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pk-t em { font-style: normal; font-size: .78em; color: var(--ink-2); }
+.pk-t span { color: var(--terra); }
+.pk-t b { color: var(--slate); }
+.pk-v { flex: none; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pk-v b { color: var(--ink); }
+#app.folded .card-pos, #app.folded .sheet { transform: translateY(calc(100% - 58px)); overflow: hidden; }
+#app.folded .card-pos > :not(.grab):not(.peek), #app.folded .sheet > :not(.grab):not(.peek) { opacity: 0; pointer-events: none; }
+#app.folded .peek { opacity: 1; visibility: visible; }
+#app.folded { --attr-y: calc(100% - var(--tab-h) - 62px); --bt: calc(100% - var(--tab-h) - 190px); --bh: 130px; }
+#app.folded.m-posisi { --attr-y: calc(100% - var(--tab-h) - 74px); }
+.tabbar { transition: transform .4s var(--ease); }
+.brand, #scale, #c-fs { transition: opacity .3s, visibility .3s; }
+#app.solo.solo { --attr-y: calc(100% - env(safe-area-inset-bottom) - 2px); --bt: calc(100% - 110px); --bh: 110px; --tt: 120px; --fade-h: 80px; }
+#app.solo .tabbar { transform: translateY(100%); }
+#app.solo .card-pos, #app.solo .sheet { transform: translateY(calc(100% + var(--tab-h) + 40px)); }
+#app.solo .brand, #app.solo #scale, #app.solo #c-fs, #app.solo .daybar, #app.solo .hero { opacity: 0; visibility: hidden; pointer-events: none; }
+#c-fs { pointer-events: auto; width: 40px; height: 40px; border: 0; border-radius: 50%; display: grid; place-items: center; background: rgba(251, 245, 234, .92); color: var(--ink); box-shadow: 0 0 0 1px rgba(42, 36, 32, .08), 0 8px 16px -8px rgba(70, 40, 20, .5); }
+#c-fs svg, .fs-exit svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#c-fs:active, .fs-exit:active, #follow:active, .mini:active { transform: scale(.94); }
+.fs-exit { position: absolute; z-index: 9; top: calc(12px + env(safe-area-inset-top)); left: 12px; height: 38px; padding: 0 14px 0 11px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 99px; background: rgba(251, 245, 234, .7); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--ink); font: 700 12.5px/1 var(--sans); box-shadow: 0 0 0 1px rgba(42, 36, 32, .08), 0 8px 18px -10px rgba(70, 40, 20, .6); opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s; }
+#app.solo .fs-exit { opacity: 1; visibility: visible; }
+#dock { position: absolute; left: 0; right: 0; z-index: 7; display: flex; justify-content: center; gap: 8px; pointer-events: none; bottom: calc(var(--cardh, 300px) + 62px); transition: bottom .45s var(--ease); }
+.m-riwayat #dock, .m-laporan #dock { bottom: calc(100% - var(--scene-h) + 58px); }
+#app.folded #dock { bottom: calc(var(--tab-h) + 92px); }
+#app.folded.m-posisi #dock { bottom: calc(var(--tab-h) + 104px); }
+#app.solo.solo #dock { bottom: calc(26px + env(safe-area-inset-bottom)); }
+#dock > button { pointer-events: auto; }
+#follow { display: none; align-items: center; gap: 7px; height: 40px; padding: 0 16px 0 11px; border: 0; border-radius: 99px; background: var(--ink); color: var(--paper); font: 700 13px/1 var(--sans); box-shadow: 0 10px 22px -10px rgba(42, 36, 32, .85); }
+#app.free #follow { display: inline-flex; }
+#follow svg { width: 18px; height: 18px; fill: none; stroke: #E8A33D; stroke-width: 1.8; stroke-linecap: round; }
+#follow .f { fill: #E8A33D; stroke: none; }
+#follow .fl-l, .m-laporan #follow .fl-t { display: none; }
+.m-laporan #follow .fl-l { display: inline; }
+.mini { display: none; width: 40px; height: 40px; border: 0; border-radius: 50%; place-items: center; background: var(--terra); color: #FBF5EA; box-shadow: 0 10px 22px -10px rgba(120, 50, 20, .9); }
+#app.m-riwayat.folded .mini, #app.m-riwayat.solo .mini { display: grid; }
+.mini svg { width: 18px; height: 18px; }
+.mini .i-pause, .mini.on .i-play { display: none; }
+.mini.on .i-pause { display: block; }
+.nogl #c-fs, .nogl #dock { display: none; }

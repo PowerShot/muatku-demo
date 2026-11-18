@@ -111,28 +111,44 @@ const sim = { s: S0 };
 const rw = { trip: 't1', prog: 0, playing: false, gradAt: 0, lastProg: -1 };
 const T = { ll: at(MAIN, S0), hd: brg(at(MAIN, S0 - 50), at(MAIN, S0 + 150)), camHd: 0, scale: 50, loaded: true, visible: true, roll: 0, v: 48 };
 T.camHd = T.hd;
-const cam = { lng: 102.31, lat: -0.26, zoom: 7.2, pitch: 45, bearing: 40 };
-const user = { follow: true, bearing: 0, pitchOff: 0, vb: 0, vp: 0, drag: false };
+const cam = { lng: 102.31, lat: -0.26, zoom: 7.2, pitch: 45, bearing: 40, pt: 0, pb: 0 };
+const user = { follow: true, bearing: 0, pitchOff: 0, vb: 0, vp: 0, drag: false, free: false, resumeAt: 0 };
 let lap = { grow: RM ? 1 : 0 }, LAYOUT = { H: 844, W: 390, cardTop: 540 };
 
 function measure() {
   LAYOUT.H = app.clientHeight; LAYOUT.W = app.clientWidth;
   LAYOUT.cardTop = $('#card').offsetTop || LAYOUT.H - 300;
+  LAYOUT.tab = $('.tabbar').offsetHeight || 78;
+  LAYOUT.rwTop = $('#rw-sheet').offsetTop || 348; LAYOUT.lpTop = $('#lp-sheet').offsetTop || 452;
+  app.style.setProperty('--cardh', LAYOUT.H - LAYOUT.cardTop + 'px');
 }
 const padFor = (y, top) => ({ top, bottom: Math.max(0, LAYOUT.H + top - 2 * y), left: 0, right: 0 });
+/* px masqués en bas par l'UI (panneau ouvert / replié / carte seule) — sert au padding caméra et au recalage */
+const isF = () => app.classList.contains('folded'), isS = () => app.classList.contains('solo');
+function occBot(m, normal) {
+  if (!normal && isS()) return 0;
+  if (!normal && isF()) return LAYOUT.tab + (m === 'posisi' ? 70 : 58);
+  return LAYOUT.H - (m === 'posisi' ? LAYOUT.cardTop : m === 'riwayat' ? LAYOUT.rwTop : LAYOUT.lpTop);
+}
+function padX(y, top) {
+  const d = (occBot(mode, true) - occBot(mode)) / 2;
+  if (d < 1) return padFor(y, top);
+  const up = isS() ? top * 0.45 : 0;
+  return padFor(y + d - up * 0.6, Math.max(30, top + d - up));
+}
 const mpp = (z, lat) => (40075016.686 * Math.cos(lat * D2R)) / (512 * Math.pow(2, z));
-function sceneBottom() { return mode === 'posisi' ? LAYOUT.cardTop - 4 : mode === 'riwayat' ? 352 : 456; }
+function sceneBottom() { if (isS() || isF()) return LAYOUT.H - occBot(mode) - 8; return mode === 'posisi' ? LAYOUT.cardTop - 4 : mode === 'riwayat' ? 352 : 456; }
 
 function target(now) {
   const H = LAYOUT.H;
   if (mode === 'posisi') {
-    return { center: T.ll, zoom: 12.75, pitch: clamp(62 + user.pitchOff, 34, 78), bearing: user.follow ? T.camHd - 28 : user.bearing, padding: padFor(Math.min(LAYOUT.cardTop - 118, H * 0.52), 150) };
+    return { center: T.ll, zoom: 12.75, pitch: clamp(62 + user.pitchOff, 34, 78), bearing: user.follow ? T.camHd - 28 : user.bearing, padding: padX(Math.min(LAYOUT.cardTop - 118, H * 0.52), 150) };
   }
   if (mode === 'riwayat') {
-    return { center: T.ll, zoom: 11.2, pitch: clamp(58 + user.pitchOff, 30, 78), bearing: user.follow ? T.camHd - 22 : user.bearing, padding: padFor(236, 120) };
+    return { center: T.ll, zoom: 11.2, pitch: clamp(58 + user.pitchOff, 30, 78), bearing: user.follow ? T.camHd - 22 : user.bearing, padding: padX(236, 120) };
   }
   const tt = RM || !user.follow ? 0 : Math.sin(now / 1000 * 0.21) * 5;
-  return { center: [102.31, -0.25], zoom: 7.2 + Math.log2(LAYOUT.W / 390), pitch: clamp(62 + user.pitchOff, 20, 76), bearing: user.follow ? 38 + tt : user.bearing, padding: padFor(388, 210) };
+  return { center: [102.31, -0.25], zoom: 7.2 + Math.log2(LAYOUT.W / 390), pitch: clamp(62 + user.pitchOff, 20, 76), bearing: user.follow ? 38 + tt : user.bearing, padding: padX(388, 210) };
 }
 
 /* ------------------------------------------------------------ style carte --- */
@@ -295,7 +311,7 @@ function label(cls, html, modes, pos) {
   LBL.push(o); return o;
 }
 function setHTML(o, h) { if (o.html !== h) { o.html = h; o.card.innerHTML = h; o.w = 0; } }
-function snapCam() { const t = target(performance.now()); Object.assign(cam, { lng: t.center[0], lat: t.center[1], zoom: t.zoom, pitch: t.pitch, bearing: t.bearing }); map.jumpTo(t); }
+function snapCam() { const t = target(performance.now()); Object.assign(cam, { lng: t.center[0], lat: t.center[1], zoom: t.zoom, pitch: t.pitch, bearing: t.bearing, pt: t.padding.top, pb: t.padding.bottom }); map.jumpTo(t); }
 const elev = (ll) => (map && map.queryTerrainElevation(ll)) || 0;
 function project(ll, alt) {
   const m = MVP, mc = maplibregl.MercatorCoordinate.fromLngLat(ll, alt), x = mc.x, y = mc.y, z = mc.z;
@@ -408,18 +424,23 @@ function tick(now) {
     user.bearing += user.vb * dt; user.pitchOff = clamp(user.pitchOff + user.vp * dt, -32, 16);
     const k = Math.exp(-dt * 3.2); user.vb *= k; user.vp *= k; moving = true;
   }
+  /* navigation libre : la carte appartient au doigt, on ne fait que lire la caméra */
+  if (user.free) { if (flyEnd) flyEnd = 0; syncCam(); if (moving) map.triggerRepaint(); hudUI(now); return; }
   if (now < flyEnd) { map.triggerRepaint(); return; }
   if (flyEnd) { flyEnd = 0; syncCam(); }
   const t = target(now), direct = user.drag || Math.abs(user.vb) > 0.4 || Math.abs(user.vp) > 0.4;
-  const k = 1 - Math.exp(-dt * 2.4), kb = direct ? 1 : 1 - Math.exp(-dt * 2.2), kc = mode === 'posisi' ? 1 : mode === 'riwayat' ? 1 - Math.exp(-dt * 5) : k;
+  const catchUp = now - user.resumeAt < 1600;
+  const k = 1 - Math.exp(-dt * 2.4), kb = direct ? 1 : 1 - Math.exp(-dt * 2.2), kc = mode === 'posisi' ? (catchUp ? 1 - Math.exp(-dt * 4) : 1) : mode === 'riwayat' ? 1 - Math.exp(-dt * 5) : k;
   const d0 = Math.abs(cam.zoom - t.zoom) + Math.abs(cam.pitch - t.pitch) + Math.abs(angDiff(cam.bearing, t.bearing)) + Math.abs(cam.lng - t.center[0]) * 50 + Math.abs(cam.lat - t.center[1]) * 50;
+  const kp = 1 - Math.exp(-dt * 4), dp = Math.abs(cam.pt - t.padding.top) + Math.abs(cam.pb - t.padding.bottom);
+  cam.pt = lerp(cam.pt, t.padding.top, kp); cam.pb = lerp(cam.pb, t.padding.bottom, kp);
   cam.zoom = lerp(cam.zoom, t.zoom, k); cam.pitch = direct ? t.pitch : lerp(cam.pitch, t.pitch, k);
   cam.bearing += angDiff(cam.bearing, t.bearing) * kb;
   cam.lng = lerp(cam.lng, t.center[0], kc); cam.lat = lerp(cam.lat, t.center[1], kc);
-  if (moving || direct || d0 > 0.002) map.jumpTo({ center: [cam.lng, cam.lat], zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing, padding: t.padding });
+  if (moving || direct || d0 > 0.002 || dp > 0.5) map.jumpTo({ center: [cam.lng, cam.lat], zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing, padding: { top: cam.pt, bottom: cam.pb, left: 0, right: 0 } });
   hudUI(now);
 }
-function syncCam() { const c = map.getCenter(); Object.assign(cam, { lng: c.lng, lat: c.lat, zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() }); }
+function syncCam() { const c = map.getCenter(), p = map.getPadding(); Object.assign(cam, { lng: c.lng, lat: c.lat, zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing(), pt: p.top || 0, pb: p.bottom || 0 }); }
 let scaleAt = 0;
 function hudUI(now) {
   $('#needle').setAttribute('transform', `rotate(${(-cam.bearing).toFixed(1)} 15 15)`);
@@ -434,6 +455,7 @@ function posUI() {
   const real = ((sim.s - S0) / MAIN.len) * 207 / DEMO, left = Math.max(1, Math.round(63 - real));
   const v = RM ? 48 : 48 + Math.round(Math.sin(performance.now() / 2300) * 2 + Math.sin(performance.now() / 870));
   $('#km-left').textContent = left; $('#spd').textContent = v;
+  $('#pk-km').textContent = left;
   setHTML(LB.truck, `<div class="sp">${v}<small>km/jam</small></div><div class="eta">${left} km · tiba ± 12:34</div>`);
 }
 
@@ -504,6 +526,7 @@ function buildChart() {
 function setTrip(id) {
   rw.trip = id; const tr = TRIPS[id];
   $('#rw-eyebrow').textContent = tr.eyebrow; $('#rw-title').innerHTML = tr.title; $('#rw-when').textContent = tr.when;
+  $('#pk-rw').innerHTML = tr.title; $('#pk-rw2').textContent = tr.when.split(' · ')[1] || '';
   const tag = $('#rw-tag'); tag.textContent = tr.load ? 'Bermuatan' : 'Kosong'; tag.className = 'tag ' + (tr.load ? 'load' : 'empty');
   $('#st-km').textContent = tr.km; $('#st-vmax').textContent = tr.vmax; $('#st-stop').textContent = tr.stop ? `1 × ${tr.stop.min}` : '0';
   $('#docs').innerHTML = tr.docs;
@@ -523,14 +546,15 @@ function setProg(p, snap) {
 function setPlaying(on) {
   rw.playing = on; $('#play').classList.toggle('on', on);
   $('#play').setAttribute('aria-label', on ? 'Jeda pemutaran' : 'Putar ulang trajet di peta');
+  $('#m-play').classList.toggle('on', on); $('#m-play').setAttribute('aria-label', on ? 'Jeda pemutaran' : 'Putar ulang trajet di peta');
 }
 
 /* ------------------------------------------------------------ navigation ---- */
 function go(m, instant) {
-  mode = m; app.className = 'm-' + m;
+  mode = m; app.classList.remove('m-posisi', 'm-riwayat', 'm-laporan'); app.classList.add('m-' + m);
   $$('.tab').forEach((b) => { const on = b.dataset.go === m; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   $$('.screen').forEach((s) => s.classList.toggle('on', s.dataset.m === m));
-  user.follow = true; user.pitchOff = 0; user.vb = user.vp = 0;
+  user.follow = true; user.pitchOff = 0; user.vb = user.vp = 0; setFree(false);
   if (m !== 'riwayat') setPlaying(false);
   history.replaceState(null, '', '#' + m);
   if (!map || !ready) return;
@@ -551,29 +575,61 @@ function go(m, instant) {
 let toastT = 0;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 1600); }
 
+/* ------------------------------------------------------------ carte libre / repli / carte seule */
+function setFree(on) { user.free = on; app.classList.toggle('free', on); }
+function resumeFollow() {
+  setFree(false); user.follow = true; user.pitchOff = 0; user.vb = user.vp = 0; user.resumeAt = performance.now();
+  if (map && ready) { map.stop(true); syncCam(); }
+}
+function relayout(mutate) {
+  const a = occBot(mode); mutate(); measure(); const b = occBot(mode);
+  if (!map || !ready) return;
+  if (user.free && a !== b && !map.isMoving()) {
+    const h = LAYOUT.H, p = map.getPadding(), pc = (p.top + h - p.bottom) / 2;
+    map.easeTo({ center: map.unproject([LAYOUT.W / 2, (h - a) / 2]), offset: [0, (h - b) / 2 - pc], duration: 450 });
+  }
+  setTimeout(() => { measure(); map.resize(); }, 480);
+}
+function setFold(f) {
+  if (isF() === f) return;
+  if (f) $$('.sheet').forEach((s) => { s.scrollTop = 0; });
+  relayout(() => app.classList.toggle('folded', f));
+  $$('.grab').forEach((g) => g.setAttribute('aria-expanded', String(!f)));
+}
+function setSolo(on) {
+  if (isS() === on) return;
+  relayout(() => app.classList.toggle('solo', on));
+  $$('#hd .brand, #scale, #c-fs, .screen, .tabbar').forEach((e) => { e.inert = on; });
+  if (on && document.fullscreenEnabled && !document.fullscreenElement) document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+  if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+
 function bindUI() {
   $$('.tab').forEach((b) => b.addEventListener('click', () => { if (b.dataset.go !== mode) go(b.dataset.go); }));
   $('#compass').addEventListener('click', () => {
     user.vb = user.vp = 0;
+    if (user.free && map && ready) { map.easeTo({ bearing: 0, duration: 600 }); toast('Utara di atas'); return; }
     if (!user.follow && Math.abs(angDiff(cam.bearing, 0)) < 3) { user.follow = true; toast(mode === 'laporan' ? 'Putar pelan seperti maket' : 'Ikuti arah truk'); }
     else { user.follow = false; user.bearing = 0; toast('Utara di atas'); }
   });
-  const touch = $('#touch'); let last = null, lastT0 = 0;
-  touch.addEventListener('pointerdown', (e) => {
-    if (performance.now() < flyEnd || !ready) return;
-    touch.setPointerCapture(e.pointerId); last = { x: e.clientX, y: e.clientY }; lastT0 = performance.now();
-    if (user.follow) { user.follow = false; user.bearing = cam.bearing; }
-    user.drag = true; user.vb = user.vp = 0;
+  $('#follow').addEventListener('click', resumeFollow);
+  $('#m-play').addEventListener('click', () => $('#play').click());
+  $('#c-fs').addEventListener('click', () => setSolo(true));
+  $('#fs-exit').addEventListener('click', () => setSolo(false));
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) setSolo(false); });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') setSolo(false); });
+  /* poignée + barre repliée : glisser bas = replier, haut = rouvrir, tap = bascule */
+  $$('.grab, .peek').forEach((h) => {
+    let y0 = null, dy = 0, dragged = false, sh = null;
+    h.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; dragged = false; sh = h.closest('.sheet, .card-pos'); h.setPointerCapture(e.pointerId); sh.style.transition = 'none'; });
+    h.addEventListener('pointermove', (e) => {
+      if (y0 == null) return; dy = e.clientY - y0; if (Math.abs(dy) > 6) dragged = true;
+      const max = sh.offsetHeight - 58; sh.style.transform = `translateY(${clamp((isF() ? max : 0) + dy, 0, max)}px)`;
+    });
+    const end = () => { if (y0 == null) return; y0 = null; sh.style.transition = sh.style.transform = ''; if (dragged && !isF() && dy > 50) setFold(true); else if (dragged && isF() && dy < -30) setFold(false); };
+    h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
+    h.addEventListener('click', () => { if (dragged) { dragged = false; return; } setFold(!isF()); });
   });
-  touch.addEventListener('pointermove', (e) => {
-    if (!user.drag || !last) return;
-    const now = performance.now(), dtt = Math.max(8, now - lastT0), dx = e.clientX - last.x, dy = e.clientY - last.y;
-    user.bearing += dx * 0.32; user.pitchOff = clamp(user.pitchOff - dy * 0.2, -32, 16);
-    user.vb = lerp(user.vb, ((dx * 0.32) / dtt) * 1000, 0.5); user.vp = lerp(user.vp, ((-dy * 0.2) / dtt) * 1000, 0.5);
-    last = { x: e.clientX, y: e.clientY }; lastT0 = now;
-  });
-  const up = () => { user.drag = false; last = null; if (RM || performance.now() - lastT0 > 90) user.vb = user.vp = 0; };
-  touch.addEventListener('pointerup', up); touch.addEventListener('pointercancel', up);
   $('#play').addEventListener('click', () => { if (rw.playing) setPlaying(false); else { if (rw.prog >= 0.999) setProg(0, true); setPlaying(true); } });
   const svg = $('#chart');
   const scrub = (e) => { const r = svg.getBoundingClientRect(), x = ((e.clientX - r.left) / r.width) * 350, pr = TRIPS[rw.trip].prof; setProg((x - CH.L) / (350 - CH.L - CH.Rr), false); };
@@ -615,10 +671,16 @@ async function init() {
   let style;
   try { style = await makeStyle(); } catch (e) { console.warn('[miniatur]', e.message); fallback2D('peta tidak dapat dimuat'); return; }
   map = new maplibregl.Map({
-    container: 'map', style, center: [102.31, -0.25], zoom: 7.2, pitch: 45, bearing: 38, interactive: false, attributionControl: false,
+    container: 'map', style, center: [102.31, -0.25], zoom: 7.2, pitch: 45, bearing: 38, attributionControl: false,
+    interactive: true, dragPan: true, scrollZoom: true, touchZoomRotate: true, touchPitch: true, dragRotate: true, doubleClickZoom: true, keyboard: true,
+    maxBounds: [[96, -6], [109, 6]], minZoom: 5.5, maxZoom: 17.5,
     pixelRatio: Math.min(devicePixelRatio || 1, 2), maxPitch: 80, fadeDuration: 0, canvasContextAttributes: { antialias: true },
   });
   map.on('error', (e) => { NETERR++; if (NETERR <= 3) console.warn('[miniatur] ubin/peta:', e && e.error && e.error.message); });
+  /* premier contact (doigt, souris, molette) : on coupe l'animation en cours et le suivi auto */
+  const toFree = () => { if (!ready) return; map.stop(true); flyEnd = 0; user.vb = user.vp = 0; if (!user.free) setFree(true); };
+  const cc = map.getCanvasContainer();
+  cc.addEventListener('pointerdown', toFree, true); cc.addEventListener('touchstart', toFree, { capture: true, passive: true }); cc.addEventListener('wheel', toFree, { capture: true, passive: true });
   map.on('load', () => {
     addLayers(); ready = true; syncCam();
     go(first, RM);
@@ -629,6 +691,7 @@ async function init() {
     pause: (b) => { paused = b; if (!b) lastT = performance.now(); },
     settle: (ms = 20000) => new Promise((res) => { let done = false; const fin = (r) => { if (!done) { done = true; res(r); } }; paused = true; if (performance.now() >= flyEnd) { flyEnd = 0; snapCam(); } if (mode === 'laporan' && lap.grow < 1) { lap.grow = 1; map.setPaintProperty('zone-col', 'fill-extrusion-height', growExpr(1)); } map.once('idle', () => fin('idle')); map.triggerRepaint(); setTimeout(() => fin('timeout'), ms); }),
     probe: () => ({ elevCenter: map.queryTerrainElevation(map.getCenter()), zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing(), mode, flying: performance.now() < flyEnd }),
+    truck: () => T.ll, free: () => user.free, fold: setFold, solo: setSolo, follow: resumeFollow,
   };
 }
 let NETERR = 0;
