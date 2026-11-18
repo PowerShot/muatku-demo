@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#0b0f12">
 <link rel="icon" href="data:,">
@@ -211,6 +214,49 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
   .screen,.screen .rise,.vignette,.frame{transition:none!important}
   .live i{animation:none}
 }
+/* ---- navigation libre · panneau repliable · carte seule (pattern K) ---- */
+.follow{z-index:6}
+#app[data-screen=riwayat] .follow{top:calc(env(safe-area-inset-top) + 196px)}
+#app[data-screen=laporan] .follow{top:calc(env(safe-area-inset-top) + 276px)}
+.follow .fl-l,#app[data-screen=laporan] .follow .fl-t{display:none}
+#app[data-screen=laporan] .follow .fl-l{display:inline}
+button.grab{display:block;position:relative;padding:0;border:0;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent}
+button.grab::before{content:"";position:absolute;inset:-12px -90px -10px}
+.hud .grab{position:absolute;top:-13px;left:50%;margin:0 0 0 -19px;background:rgba(255,255,255,.55)}
+.hud{transition:transform .45s var(--ease)}
+.sheet>*{transition:opacity .3s}
+.peek{position:absolute;left:0;right:0;top:14px;height:40px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;border:0;background:none;color:var(--ink);text-align:left;font:500 12px/1 var(--ui);opacity:0;visibility:hidden;touch-action:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .3s,visibility .3s}
+.hud .peek{top:0;height:50px;border-radius:18px;padding:0 16px}
+.pk-t{min-width:0;font:700 19px/1 var(--hud);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-t span{color:var(--amber);margin:0 6px}
+.pk-t small{font-size:.7em}
+.pk-v{flex:none;color:var(--ink2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pk-v b{color:var(--ink);font-weight:700}
+#app.folded #rwSheet.sheet,#app.folded #lpSheet.sheet{transform:translateY(calc(100% - 58px));overflow:hidden}
+#app.folded .hud{transform:translateY(calc(100% - 50px))}
+#app.folded .sheet>:not(.grab):not(.peek),#app.folded .hud>:not(.grab):not(.peek){opacity:0!important;pointer-events:none}
+#app.folded .peek{opacity:1;visibility:visible}
+#app.fx .sheet,#app.fx .hud>*{transition-delay:0s!important}
+.tabs{transition:transform .4s var(--ease)}
+#app.solo #rwSheet.sheet,#app.solo #lpSheet.sheet,#app.solo .hud{transform:translateY(calc(100% + var(--tabh) + 60px))}
+#app.solo .tabs{transform:translateY(110%)}
+#app.solo .unit,#app.solo .tape,#app.solo .telemetry,#app.solo .rw-head,#app.solo .rpchip,#app.solo .lp-head,#app.solo .giant,#app.solo .legend,#app.solo #c-fs{opacity:0!important;visibility:hidden;pointer-events:none!important}
+#app.solo .cams{top:calc(env(safe-area-inset-top) + 12px)}
+#app.solo .follow{top:calc(env(safe-area-inset-top) + 62px)}
+#c-fs{position:absolute;z-index:6;right:12px;top:calc(env(safe-area-inset-top) + 388px);width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:var(--ink);padding:0}
+#app[data-screen=riwayat] #c-fs{top:calc(env(safe-area-inset-top) + 196px)}
+#app[data-screen=laporan] #c-fs{top:calc(env(safe-area-inset-top) + 276px)}
+#c-fs svg,.fs-exit svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#c-fs:active,.fs-exit:active,#m-play:active,.follow:active{transform:scale(.94)}
+.fs-exit{position:absolute;z-index:9;top:calc(12px + env(safe-area-inset-top));left:12px;height:40px;padding:0 15px 0 12px;display:inline-flex;align-items:center;gap:7px;border-radius:99px;color:var(--ink);font:600 12.5px/1 var(--ui);opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+#app.solo .fs-exit{opacity:1;visibility:visible}
+.sattr{position:absolute;left:0;right:0;bottom:calc(3px + env(safe-area-inset-bottom));z-index:6;font:500 7.6px/1.3 var(--ui);color:rgba(246,243,236,.8);text-align:center;text-shadow:0 1px 2px rgba(0,0,0,.7);pointer-events:none;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+#app.solo .sattr{opacity:1;visibility:visible}
+#dock{position:absolute;left:0;right:0;z-index:7;display:none;justify-content:center;pointer-events:none;bottom:calc(var(--tabh) + env(safe-area-inset-bottom) + 48px)}
+#app.folded[data-screen=riwayat] #dock,#app.solo[data-screen=riwayat] #dock{display:flex}
+#app.solo.solo #dock{bottom:calc(24px + env(safe-area-inset-bottom))}
+#m-play{pointer-events:auto;width:48px;height:48px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--amber);color:#1d1304;box-shadow:0 0 18px rgba(255,178,62,.55)}
+#m-play svg{width:20px;height:20px;fill:currentColor}
 </style>
 </head>
 <body>
@@ -238,8 +284,9 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
       <button data-cam="orbit" role="radio" aria-checked="false"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="9" ry="4.4"/><circle cx="12" cy="13" r="1.9"/><path d="M17.6 7.6l2.6.9-1.4 2.3"/></svg><span>Orbit</span></button>
       <button data-cam="rute" role="radio" aria-checked="false"><svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18H13a3 3 0 0 0 0-6h-2a3 3 0 0 1 0-6h4.8"/></svg><span>Rute</span></button>
     </div>
-    <button class="follow glass" id="follow"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" fill="#FFB23E"/></svg>Kejar truk lagi</button>
     <div class="hud">
+      <button class="grab" type="button" aria-label="Lipat panel" aria-expanded="true"></button>
+      <button class="peek glass" type="button" aria-label="Buka panel"><span class="pk-t">PT RAPP<span>·</span>ETA ±12:34</span><span class="pk-v"><b id="pkKm">63</b> km lagi</span></button>
       <div class="hud-row rise d1">
         <div class="speed glass"><b id="spd">48</b><span class="u">km/jam</span></div>
         <div class="eta glass">
@@ -267,7 +314,8 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
     </header>
     <div class="rpchip glass rise d1" aria-live="off"><span class="tm" id="rpTime">09:13<small>WIB</small></span><span class="v" id="rpSpd">56 km/jam</span><span class="k" id="rpKm">km 92 / 207</span></div>
     <div class="sheet glass2 rise d2" id="rwSheet">
-      <div class="grab"></div>
+      <button class="grab" type="button" aria-label="Lipat panel" aria-expanded="true"></button>
+      <button class="peek" type="button" aria-label="Buka panel"><span class="pk-t" id="pkRw">Batu Ampar<span>→</span>PT RAPP</span><span class="pk-v" id="pkRw2">07:15 – 11:52</span></button>
       <div class="tr-top">
         <div><div class="tr-route" id="trRoute">Batu Ampar<span>→</span>PT RAPP</div><div class="tr-when" id="trWhen">07:15 – 11:52 · 4 j 37 mnt</div></div>
         <span class="state" id="trState"><span class="dot l"></span>Bermuatan</span>
@@ -296,7 +344,8 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
     </div>
     <div class="legend glass rise d2"><span><i style="background:var(--amber)"></i>Bermuatan</span><span><i style="background:var(--ice)"></i>Kosong</span><small>tinggi = jumlah trip</small></div>
     <div class="sheet glass2 rise d3" id="lpSheet">
-      <div class="grab"></div>
+      <button class="grab" type="button" aria-label="Lipat panel" aria-expanded="true"></button>
+      <button class="peek" type="button" aria-label="Buka panel"><span class="pk-t">44<small>%</small> kosong</span><span class="pk-v"><b>2.778</b> / 6.296 km</span></button>
       <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl">3 status · 229 jam tercatat</span><span class="lbl" style="color:var(--ink2)">6.296 km</span></div>
       <div class="stbar" aria-hidden="true"><i style="flex:69;background:var(--amber)"></i><i style="flex:63;background:var(--ice)"></i><i style="flex:97;background:var(--slate);opacity:.7"></i></div>
       <div class="strow"><span class="dot l"></span><div class="n">Bermuatan<small>30 ritase</small></div><div class="v">3.025 km<small>69 j</small></div></div>
@@ -312,6 +361,11 @@ button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
     </div>
   </section>
 
+  <button class="follow glass" id="follow" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" fill="#FFB23E"/></svg><span class="fl-t">Ikuti truk</span><span class="fl-l">Tampilan awal</span></button>
+  <button class="glass" id="c-fs" type="button" aria-label="Peta layar penuh"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5V3h4.5M12.5 3H17v4.5M17 12.5V17h-4.5M7.5 17H3v-4.5"/></svg></button>
+  <button class="fs-exit glass" id="fs-exit" type="button" aria-label="Keluar dari peta penuh"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 3v4.5H3M12.5 3v4.5H17M17 12.5h-4.5V17M3 12.5h4.5V17"/></svg>Keluar</button>
+  <div id="dock"><button id="m-play" type="button" aria-label="Putar ulang penerbangan"><svg viewBox="0 0 24 24" id="mPlayIco"><path d="M7 4.5v15l12.5-7.5z"/></svg></button></div>
+  <div class="sattr">OpenFreeMap © OpenMapTiles · Data © OpenStreetMap contributors · Terrain: Mapzen / AWS Open Data</div>
   <nav class="tabs glass2" role="tablist" aria-label="Navigasi">
     <div class="row">
       <button role="tab" data-tab="posisi" aria-selected="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>Posisi</button>

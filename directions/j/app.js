@@ -342,25 +342,21 @@ function initMap() {
   Object.assign(S.truck, { lng: p.lng, lat: p.lat, hdg: h }); S.camHdg = h;
   map = new maplibregl.Map({
     container: 'map', style: 'https://tiles.openfreemap.org/styles/liberty',
-    center: [p.lng, p.lat], zoom: 17.5, pitch: 68, bearing: h, maxPitch: 85,
+    center: [p.lng, p.lat], zoom: 17.5, pitch: 68, bearing: h, maxPitch: 80, minZoom: 5.5, maxZoom: 19, maxBounds: [[96, -6], [109, 6]],
+    interactive: true, dragPan: true, scrollZoom: true, touchZoomRotate: true, touchPitch: true, dragRotate: true,
     padding: { top: 250, bottom: 40, left: 0, right: 0 },
     pixelRatio: Math.min(window.devicePixelRatio || 1, 2), attributionControl: false,
     canvasContextAttributes: { antialias: true }, fadeDuration: 200,
   });
   map.on('error', (e) => console.warn('[peta]', e && e.error ? e.error.message : 'error'));
-  ['dragstart', 'rotatestart', 'pitchstart', 'zoomstart'].forEach((ev) => map.on(ev, (e) => {
-    if (!e.originalEvent) return;
-    if (S.screen === 'posisi') setCam('bebas');
-    else { S.flying = false; S.flyTok++; S.holdUntil = performance.now() + 6000; }
-  }));
+  /* premier contact (doigt, souris, molette, clavier) : on coupe l'animation en cours et le suivi auto */
+  ['dragstart', 'rotatestart', 'pitchstart', 'zoomstart'].forEach((ev) => map.on(ev, (e) => { if (e.originalEvent) goFree(); }));
+  ['pointerdown', 'touchstart', 'wheel'].forEach((ev) => map.getCanvasContainer().addEventListener(ev, goFree, { capture: true, passive: true }));
   map.on('moveend', (e) => { if (e.originalEvent) syncCam(); });
   // jumpTo() à chaque frame annulerait le geste : la caméra se met en pause tant que le doigt est posé
   const press = () => { S.pressed = true; };
   map.on('mousedown', press); map.on('touchstart', press);
   ['pointerup', 'pointercancel', 'touchend'].forEach((ev) => window.addEventListener(ev, () => { S.pressed = false; syncCam(); }));
-  map.getCanvasContainer().addEventListener('wheel', () => {
-    if (S.screen === 'posisi') { if (S.cam !== 'bebas') setCam('bebas'); } else S.holdUntil = performance.now() + 6000;
-  }, { passive: true });
   map.on('load', onLoad);
 }
 
@@ -429,7 +425,7 @@ function onLoad() {
   S.rute = { center: [cc.lng, cc.lat], zoom: (cam && cam.zoom ? cam.zoom : 8.6) - 0.1, pitch: 48, bearing: rb, pt: 0, pb: 0 };
 
   S.ready = true;
-  syncCam();
+  syncCam(); measureJ();
   applyScreen(true);
   readyResolve();
 }
@@ -439,7 +435,24 @@ function syncCam() {
   const c = map.getCenter(), p = map.getPadding();
   Object.assign(C, { lng: c.lng, lat: c.lat, zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch(), pt: p.top || 0, pb: p.bottom || 0 });
 }
+/* px masqués en bas par l'UI (panneau ouvert / replié / carte seule) — padding caméra + recalage */
+const LJ = { H: 844, tab: 78, hud: 566, rw: 446, lp: 500 };
+function measureJ() { LJ.H = app.clientHeight; LJ.tab = $('.tabs').offsetHeight || 78; LJ.hud = $('.hud').offsetTop; LJ.rw = $('#rwSheet').offsetTop; LJ.lp = $('#lpSheet').offsetTop; }
+function occJ(normal) {
+  const s = S.screen;
+  if (!normal && app.classList.contains('solo')) return 0;
+  if (!normal && app.classList.contains('folded')) return LJ.tab + (s === 'posisi' ? 60 : 36);
+  return LJ.H - (s === 'posisi' ? LJ.hud : s === 'riwayat' ? LJ.rw : LJ.lp);
+}
 function target() {
+  const t = target0();
+  if (!t) return t;
+  const d = (occJ(true) - occJ()) / 2;
+  if (d < 1) return t;
+  const pb = Math.max(0, t.pb - d);
+  return { ...t, pb, pt: t.pt + 2 * d - (t.pb - pb) };
+}
+function target0() {
   const c = [S.truck.lng, S.truck.lat];
   if (S.screen === 'posisi') {
     if (S.cam === 'kejar') return { center: c, zoom: 15.7, pitch: 72, bearing: S.camHdg - 16, pt: 330, pb: 40 };
@@ -464,7 +477,7 @@ function fly(instant) {
   map.once('moveend', () => { if (tok !== S.flyTok) return; S.flying = false; syncCam(); });
 }
 function stepCam(dt) {
-  if (!S.ready || S.flying || S.pressed || performance.now() < S.holdUntil) return;
+  if (!S.ready || S.flying || S.pressed || S.free || performance.now() < S.holdUntil) return;
   const t = target();
   if (!t) return;
   const k = reduce ? 1 : 1 - Math.exp(-dt * 3.2);
@@ -521,6 +534,7 @@ function hud() {
   if (S.screen === 'posisi') {
     $('#spd').textContent = Math.round(S.live.v);
     $('#kmLeft').textContent = Math.max(0, Math.round(MAIN.km - S.live.km));
+    $('#pkKm').textContent = $('#kmLeft').textContent;
     const bear = map ? map.getBearing() : S.camHdg;
     $('#tapeIn').style.transform = `translateX(${(TAPE_W / 2 - (((bear % 360) + 360) % 360 + 360) * PXD).toFixed(1)}px)`;
     const rel = angDiff(bear, brg([T.lat, T.lng], RAPP.at));
@@ -548,6 +562,7 @@ function renderTrips() {
 function renderTrip() {
   const t = S.trip, col = t.load ? AMBER : ICE, Wd = 300, Hd = 66, top = 90;
   $('#trRoute').innerHTML = `${t.from}<span>→</span>${t.to}`;
+  $('#pkRw').innerHTML = `${t.from}<span>→</span>${t.to}`; $('#pkRw2').textContent = `${t.t0} – ${t.t1}`;
   $('#trWhen').textContent = `${t.t0} – ${t.t1} · ${Math.floor(t.dur / 60)} j ${t.dur % 60} mnt`;
   const st = $('#trState');
   st.className = 'state' + (t.load ? '' : ' k');
@@ -587,7 +602,7 @@ function selectTrip(i) {
 function setPlaying(p) {
   if (p && S.rp.min >= S.trip.dur - 0.5) S.rp.min = 0;
   S.rp.playing = p;
-  $('#playIco').innerHTML = p ? '<rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/>' : '<path d="M7 4.5v15l12.5-7.5z"/>';
+  $('#playIco').innerHTML = $('#mPlayIco').innerHTML = p ? '<rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/>' : '<path d="M7 4.5v15l12.5-7.5z"/>';
   $('#play').setAttribute('aria-label', p ? 'Jeda' : 'Putar ulang penerbangan');
 }
 
@@ -611,6 +626,7 @@ function setScreen(s) {
 }
 function applyScreen(instant) {
   const s = S.screen;
+  S.free = false;
   S.truck.visible = s !== 'laporan';
   S.beacon.visible = s !== 'laporan';
   S.truckPxT = s === 'posisi' ? PX[S.cam] || PX.kejar : PX[s];
@@ -637,9 +653,64 @@ function applyScreen(instant) {
 
 $$('.tabs button').forEach((b) => b.addEventListener('click', () => setScreen(b.dataset.tab)));
 $$('.cams button').forEach((b) => b.addEventListener('click', () => setCam(b.dataset.cam)));
-$('#follow').addEventListener('click', () => setCam('kejar'));
+$('#follow').addEventListener('click', () => {
+  if (S.screen === 'posisi') { setCam('kejar'); return; }
+  S.free = false; app.classList.remove('free'); if (map) { map.stop(true); syncCam(); }
+});
 $('#trips').addEventListener('click', (e) => { const b = e.target.closest('.trip'); if (b) selectTrip(+b.dataset.i); });
 $('#play').addEventListener('click', () => setPlaying(!S.rp.playing));
+$('#m-play').addEventListener('click', () => setPlaying(!S.rp.playing));
+
+/* ------------------------------------------- carte libre / repli / carte seule (pattern K) --- */
+function goFree() {
+  if (!S.ready) return;
+  map.stop(true); S.flying = false; S.flyTok++; S.holdUntil = 0;
+  if (S.screen === 'posisi') { if (S.cam !== 'bebas') setCam('bebas'); }
+  else if (!S.free) { S.free = true; app.classList.add('free'); }
+}
+const isFree = () => S.free || (S.screen === 'posisi' && S.cam === 'bebas');
+function relayoutJ(mutate) {
+  const a = occJ(); app.classList.add('fx'); clearTimeout(relayoutJ.t); relayoutJ.t = setTimeout(() => app.classList.remove('fx'), 800);
+  mutate(); measureJ(); const b = occJ();
+  if (!map || !S.ready) return;
+  if (isFree() && a !== b && !map.isMoving()) {
+    const h = LJ.H, p = map.getPadding(), pc = (p.top + h - p.bottom) / 2;
+    map.easeTo({ center: map.unproject([app.clientWidth / 2, (h - a) / 2]), offset: [0, (h - b) / 2 - pc], duration: 450 });
+  }
+  setTimeout(() => { measureJ(); map.resize(); }, 480);
+}
+function setFold(f) {
+  if (app.classList.contains('folded') === f) return;
+  if (f) $$('.sheet').forEach((s) => { s.scrollTop = 0; });
+  relayoutJ(() => app.classList.toggle('folded', f));
+  $$('.grab').forEach((g) => g.setAttribute('aria-expanded', String(!f)));
+}
+function setSolo(on) {
+  if (app.classList.contains('solo') === on) return;
+  relayoutJ(() => app.classList.toggle('solo', on));
+  $$('.unit, .rw-head, .lp-head, .hud, .sheet, .tabs, #c-fs').forEach((e) => { e.inert = on; });
+  if (on && document.fullscreenEnabled && !document.fullscreenElement) document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+  if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+$('#c-fs').addEventListener('click', () => setSolo(true));
+$('#fs-exit').addEventListener('click', () => setSolo(false));
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) setSolo(false); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape') setSolo(false); });
+addEventListener('resize', measureJ);
+/* poignée + barre repliée : glisser bas = replier, haut = rouvrir, tap = bascule */
+$$('.grab, .peek').forEach((h) => {
+  let y0 = null, dy = 0, dragged = false, sh = null;
+  const folded = () => app.classList.contains('folded');
+  h.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; dragged = false; sh = h.closest('.sheet, .hud'); h.setPointerCapture(e.pointerId); sh.style.transition = 'none'; });
+  h.addEventListener('pointermove', (e) => {
+    if (y0 == null) return; dy = e.clientY - y0; if (Math.abs(dy) > 6) dragged = true;
+    const max = sh.offsetHeight - (sh.classList.contains('hud') ? 50 : 58);
+    sh.style.transform = `translateY(${Math.max(0, Math.min(max, (folded() ? max : 0) + dy))}px)`;
+  });
+  const end = () => { if (y0 == null) return; y0 = null; sh.style.transition = sh.style.transform = ''; if (dragged && !folded() && dy > 50) setFold(true); else if (dragged && folded() && dy < -30) setFold(false); };
+  h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
+  h.addEventListener('click', () => { if (dragged) { dragged = false; return; } setFold(!folded()); });
+});
 (() => {
   const pf = $('#profile');
   let drag = false;
@@ -705,6 +776,7 @@ requestAnimationFrame(frame);
 /* crochet de capture (Playwright) : fige l'animation et attend la fin du chargement des tuiles */
 window.J = {
   ready,
+  map: () => map, truck: () => [S.truck.lng, S.truck.lat], free: isFree, fold: setFold, solo: setSolo, screen: setScreen,
   async shot(screen, o = {}) {
     S.frozen = false;
     setScreen(screen);
