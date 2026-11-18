@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f6f3ef">
+<title>Muatku · Bayangan — perjalanan vs perjalanan biasa</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+:root{
+  --brand:#007879;--brand-400:#2aa69e;--brand-500:#0a8d89;--brand-600:#006d6e;--brand-700:#006264;--brand-800:#004f51;--brand-900:#003b3d;
+  --brand-50:#eaf9f7;--tint:#d6f2ef;--tint-2:#b9e8e2;
+  --surface:#fff;--canvas:#f6f3ef;--line:#e8e3dd;--fillc:#f3efea;--ink:#211b16;--ink-2:#57504a;--ink-3:#6b655f;
+  --ok:#1f7a3d;--ok-bg:#e5f4ea;--ok-fill:#2f8f4e;--warn:#8f520c;--warn-icon:#dd9314;--warn-bg:#fbf0db;
+  --empty:#85461b;--empty-icon:#c0763e;--empty-bg:#f7ebdf;
+  --shadow-card:0 1px 2px rgb(33 27 22/.05),0 4px 12px -6px rgb(33 27 22/.1);
+  --shadow-float:0 1px 2px rgb(33 27 22/.08),0 6px 18px -4px rgb(33 27 22/.18);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --hdr:56px;--maph:252px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--canvas);color:var(--ink);
+  -webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1;line-height:1.35}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.num,b,.v{font-variant-numeric:tabular-nums}
+.app{max-width:430px;margin:0 auto;padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:10px}
+
+/* ---------- header */
+.hdr{position:sticky;top:0;z-index:30;height:var(--hdr);display:flex;align-items:center;gap:10px;padding:0 16px;
+  padding-top:env(safe-area-inset-top);background:rgb(246 243 239/.92);-webkit-backdrop-filter:saturate(1.6) blur(14px);backdrop-filter:saturate(1.6) blur(14px)}
+.logo{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(150deg,#007273,#00605f 55%,#00474a);box-shadow:0 6px 14px -8px rgb(0 79 81/.8)}
+.brandtxt{display:flex;flex-direction:column;line-height:1.1}
+.brandtxt b{font-size:15.5px;font-weight:800;letter-spacing:-.01em}
+.brandtxt b em{font-style:normal;color:var(--brand-700)}
+.brandtxt span{font-size:11.5px;color:var(--ink-3);font-weight:600;margin-top:2px}
+.live{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 9px;border-radius:999px;background:var(--surface);
+  box-shadow:var(--shadow-card);font-size:12px;font-weight:700;color:var(--ink-2)}
+.live i{width:8px;height:8px;border-radius:50%;background:#22a352;box-shadow:0 0 0 0 rgb(34 163 82/.5);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 7px rgb(34 163 82/0)}100%{box-shadow:0 0 0 0 rgb(34 163 82/0)}}
+
+/* ---------- cards */
+.card{background:var(--surface);border-radius:20px;box-shadow:var(--shadow-card);margin:0 12px 12px;padding:16px;animation:up .6s var(--ease) both;animation-delay:calc(var(--i,0)*70ms)}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.card-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+.card-h h2{font-size:15px;font-weight:800;letter-spacing:-.01em}
+.muted{color:var(--ink-3);font-size:12px;font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap}
+.pill i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.neu{background:var(--fillc);color:var(--ink-2)}
+
+/* ---------- conclusion */
+.hero{padding:16px 16px 14px;margin-top:4px}
+.eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.eyebrow .muted{font-size:11.5px}
+.hero h1{font-size:23px;line-height:1.18;font-weight:800;letter-spacing:-.025em;text-wrap:balance}
+.hero h1 .neg{color:var(--warn)} .hero h1 .pos{color:var(--ok)}
+.hero p.sub{margin-top:6px;font-size:14px;color:var(--ink-2);font-weight:500;text-wrap:pretty}
+.trip{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:12.5px}
+.trip .rt{font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;min-width:0}
+.trip .rt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trip .eta{font-weight:800;text-align:right;color:var(--brand-800)}
+.trip .meta{color:var(--ink-3);font-weight:600}
+.trip .meta2{color:var(--ink-3);font-weight:600;text-align:right}
+
+/* ---------- sticky map */
+.mapdock{position:sticky;top:var(--hdr);z-index:20;padding:0 12px 10px;background:linear-gradient(var(--canvas) 85%,rgb(246 243 239/0));animation:fade .6s ease both;animation-delay:.1s}
+.mapcard{position:relative;height:var(--maph);border-radius:20px;overflow:hidden;box-shadow:var(--shadow-float);background:#eceae4;isolation:isolate}
+#map{position:absolute;inset:0;background:#eceae4}
+.leaflet-container{font-family:inherit;background:#eceae4}
+.leaflet-tile-pane{filter:saturate(.62) brightness(1.03) contrast(.96)}
+.leaflet-control-attribution{font-size:9px;background:rgb(255 255 255/.75)!important;border-radius:6px 0 0 0}
+.glass{background:rgb(255 255 255/.86);-webkit-backdrop-filter:saturate(1.8) blur(14px);backdrop-filter:saturate(1.8) blur(14px);border:1px solid rgb(255 255 255/.7);box-shadow:var(--shadow-float)}
+.seg{position:absolute;z-index:500;top:8px;left:8px;right:8px;display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px}
+.seg .lab{font-size:11px;font-weight:800;color:var(--ink-3);padding:0 6px 0 8px;letter-spacing:.02em;text-transform:uppercase}
+.seg button{flex:1;height:30px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--ink-2);transition:background .2s,color .2s;white-space:nowrap}
+.seg button[aria-checked=true]{background:var(--brand);color:#fff;box-shadow:0 4px 10px -5px rgb(0 79 81/.9)}
+.mbtns{position:absolute;z-index:500;right:8px;top:52px;display:flex;flex-direction:column;gap:6px}
+.mbtn{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:var(--ink-2);transition:transform .16s var(--ease),background .2s,color .2s}
+.mbtn:active{transform:scale(.92)} .mbtn.on{color:#fff;background:var(--brand)}
+.gapchip{position:absolute;z-index:500;left:8px;bottom:8px;max-width:calc(100% - 64px);display:flex;align-items:center;gap:9px;padding:7px 12px 7px 9px;border-radius:14px}
+.gapchip .gd{flex:none;height:30px;padding:0 9px;border-radius:10px;display:grid;place-items:center;color:#fff;background:var(--warn-icon);font-weight:800;font-size:13.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mapcard.locating .gapchip{opacity:0;visibility:hidden}
+.gapchip{transition:opacity .25s,visibility .25s}
+.gapchip.pos .gd{background:var(--ok-fill)} .gapchip.zero .gd{background:var(--brand)}
+.gapchip b{display:block;font-size:13px;font-weight:800;line-height:1.15}
+.gapchip span{display:block;font-size:11.5px;color:var(--ink-2);font-weight:600;margin-top:1px}
+.fs-exit,.mini{display:none}
+/* carte seule */
+body.solo{overflow:hidden}
+body.solo .mapcard{position:fixed;inset:0;height:auto;border-radius:0;z-index:100;box-shadow:none}
+body.solo .seg{top:calc(8px + env(safe-area-inset-top))}
+body.solo .mbtns{top:calc(100px + env(safe-area-inset-top))}
+body.solo #b-fs{display:none}
+body.solo .fs-exit{display:inline-flex;position:absolute;z-index:510;top:calc(54px + env(safe-area-inset-top));right:8px;height:38px;align-items:center;gap:6px;padding:0 12px;border-radius:999px;font-size:13px;font-weight:800;color:var(--ink)}
+body.solo .gapchip{bottom:calc(76px + env(safe-area-inset-bottom))}
+body.solo .mini{display:flex;position:absolute;z-index:510;left:8px;right:8px;bottom:calc(10px + env(safe-area-inset-bottom));align-items:center;gap:10px;padding:8px 12px 8px 8px;border-radius:18px}
+.mini .mt{font-size:13px;font-weight:800;min-width:44px;text-align:right}
+.mini input{flex:1}
+
+/* ---------- marqueurs */
+.tk-ic,.lbl-ic,.zl-ic0{background:none;border:0}
+.tk{position:relative;width:44px;height:44px}
+.tk-disc{position:absolute;inset:4px;border-radius:50%;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(160deg,#2aa69e 0%,var(--brand) 62%);border:3px solid #fff;box-shadow:0 4px 12px rgb(33 27 22/.32),0 0 0 1px rgb(33 27 22/.06)}
+.tk.gh .tk-disc{background:rgb(0 120 121/.16);border:2px dashed var(--brand-600);color:var(--brand-700);box-shadow:none;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.tk.gh svg{opacity:.75}
+.tk-tag{position:absolute;left:50%;top:44px;transform:translateX(-50%);font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:999px;white-space:nowrap;
+  background:rgb(255 255 255/.92);color:var(--brand-700);box-shadow:0 1px 3px rgb(33 27 22/.18);border:1px dashed var(--brand-400)}
+.tk.rl .tk-tag{border:0;color:#fff;background:var(--ink)}
+.zl{position:absolute;left:0;top:0;transform:translate(-50%,calc(-100% - 10px));display:inline-flex;align-items:center;gap:6px;width:max-content;padding:3px 10px 3px 3px;border-radius:999px;
+  background:rgb(255 255 255/.94);box-shadow:0 1px 2px rgb(33 27 22/.1),0 4px 12px -4px rgb(33 27 22/.28);font:700 11.5px/1.1 "Plus Jakarta Sans",sans-serif;color:var(--ink);white-space:nowrap;pointer-events:none}
+.zl .zi{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--brand);font-size:11px;font-weight:800}
+.zl.unl .zi{background:var(--brand-800)}
+.zl.below{transform:translate(-50%,12px)}
+.zl .zk{color:var(--brand-700)}
+.mk-st{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--ink-2);border:2.5px solid #fff;box-shadow:0 2px 6px rgb(33 27 22/.35);font:800 10px/1 "Plus Jakarta Sans",sans-serif;color:#fff}
+.mk-st.gh{background:rgb(255 255 255/.85);border:2px dashed var(--brand-600);color:var(--brand-700);box-shadow:none}
+.callout{position:absolute;left:0;top:0;transform:translate(-50%,calc(-100% - 16px));width:max-content;max-width:210px;padding:8px 11px;border-radius:14px;background:#fff;
+  box-shadow:0 1px 2px rgb(33 27 22/.1),0 8px 22px -6px rgb(33 27 22/.35);font:600 11.5px/1.3 "Plus Jakarta Sans",sans-serif;color:var(--ink-2);pointer-events:none}
+.callout::after{content:"";position:absolute;left:50%;bottom:-6px;width:12px;height:12px;background:#fff;transform:translateX(-50%) rotate(45deg);border-radius:2px}
+.callout b{display:block;color:var(--ink);font-size:12.5px;font-weight:800}
+.callout .neg{color:var(--warn);font-weight:800} .callout .pos{color:var(--ok);font-weight:800}
+.callout.low{transform:translate(-50%,40px)}
+.callout.upfar{transform:translate(-50%,calc(-100% - 46px))} .callout.low::after{bottom:auto;top:-6px}
+.seclbl{position:absolute;left:0;top:0;transform:translate(10px,-50%);font:800 11px/1 "Plus Jakarta Sans",sans-serif;padding:4px 7px;border-radius:999px;color:#fff;white-space:nowrap;box-shadow:0 2px 6px rgb(33 27 22/.3);border:1.5px solid #fff}
+
+/* ---------- race (barre double) */
+.race{display:grid;grid-template-columns:64px 1fr 58px;grid-template-rows:auto 22px 22px auto;column-gap:10px;row-gap:7px;align-items:center}
+.race .bandcap{grid-column:2;grid-row:1;position:relative;height:16px}
+.race .bandcap span{position:absolute;transform:translateX(-50%);font-size:10.5px;font-weight:700;color:var(--brand-700);white-space:nowrap;top:0;transition:left .25s var(--ease)}
+.race .ln{font-size:12px;font-weight:700;color:var(--ink-2)}
+.race .lv{font-size:13px;font-weight:800;text-align:right}
+.track{position:relative;z-index:1;height:12px;border-radius:999px;background:rgb(33 27 22/.07);overflow:visible}
+.fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;transition:width .25s var(--ease)}
+.fill.real{background:linear-gradient(90deg,var(--brand-500),var(--brand))}
+.fill.ghost{background:repeating-linear-gradient(-45deg,rgb(0 120 121/.32) 0 4px,rgb(0 120 121/.14) 4px 8px);box-shadow:inset 0 0 0 1.5px rgb(0 109 110/.45)}
+.knob{position:absolute;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:3px solid #fff;background:var(--brand);box-shadow:0 2px 6px rgb(33 27 22/.35);transition:left .25s var(--ease)}
+.knob.gh{background:rgb(234 249 247);border:2px dashed var(--brand-600);box-shadow:none}
+.bandov{grid-column:2;grid-row:2/4;align-self:stretch;position:relative;z-index:0;pointer-events:none;margin:-6px 0}
+.bandov i{position:absolute;top:0;bottom:0;border-radius:8px;background:rgb(0 120 121/.07);border:1.5px dashed rgb(0 120 121/.45);transition:left .25s var(--ease),width .25s var(--ease)}
+.race .axis{grid-column:2;grid-row:4;position:relative;height:28px;font-size:10.5px;color:var(--ink-3);font-weight:600}
+.race .axis span{position:absolute;top:0;white-space:nowrap;transform:translateX(-50%);text-align:center;line-height:1.2}
+.race .axis span:first-child{transform:none} .race .axis span:last-child{transform:translateX(-100%);text-align:right}
+.race .axis span::before{content:"";display:block;width:1px;height:5px;background:var(--line);margin:0 auto 2px}
+.race .axis span:first-child::before{margin-left:0} .race .axis span:last-child::before{margin-right:0}
+.status{display:flex;align-items:center;gap:8px;margin-top:10px;padding:9px 11px;border-radius:12px;font-size:12.5px;font-weight:600;color:var(--ink-2);background:var(--fillc)}
+.status i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.status.warn{background:var(--warn-bg);color:var(--warn)} .status.warn i{background:var(--warn-icon)}
+.status b{font-weight:800;color:var(--ink)} .status.warn b{color:var(--warn)}
+
+/* ---------- chart */
+.ch-tools{display:flex;gap:6px}
+.tbtn{height:30px;padding:0 11px;border-radius:999px;background:var(--fillc);font-size:12.5px;font-weight:800;color:var(--ink-2);display:inline-flex;align-items:center;gap:6px;transition:background .2s,color .2s}
+.tbtn.pri{background:var(--brand);color:#fff}
+.tbtn[hidden]{display:none}
+.readout{display:block;font-size:13px;font-weight:600;color:var(--ink-2);min-height:24px;margin:-2px 0 6px;line-height:22px}
+.readout .pill{height:20px;font-size:11px;padding:0 7px;margin-left:4px;vertical-align:1px;gap:5px}
+.readout b{font-weight:800;color:var(--ink)}
+.readout .neg{color:var(--warn);font-weight:800} .readout .pos{color:var(--ok);font-weight:800}
+#chart{display:block;width:100%;height:auto;touch-action:pan-y;cursor:ew-resize;user-select:none;-webkit-user-select:none}
+#chart text{font-family:inherit;font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px;font-size:11.5px;color:var(--ink-3);font-weight:600}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg-line{width:16px;height:3px;border-radius:2px;background:var(--brand-600)}
+.lg-dash{width:16px;height:0;border-top:2px dashed var(--brand-700)}
+.lg-band{width:16px;height:10px;border-radius:3px;background:var(--tint)}
+.lg-out{width:16px;height:3px;border-radius:2px;background:var(--warn-icon)}
+.hint{font-size:11.5px;color:var(--ink-3);font-weight:600;margin-top:8px;display:flex;align-items:center;gap:6px}
+
+/* ---------- waterfall */
+.wf-axis{display:grid;grid-template-columns:1fr auto 1fr;font-size:10.5px;font-weight:700;color:var(--ink-3);margin:0 0 4px}
+.wf-axis span:nth-child(2){color:var(--brand-700)} .wf-axis span:last-child{text-align:right}
+.wf-row{display:block;width:100%;text-align:left;padding:10px 10px 9px;margin:0 -10px;width:calc(100% + 20px);border-radius:14px;transition:background .2s,opacity .25s}
+.wf-row:active{background:var(--fillc)}
+.wf-row.sel{background:var(--brand-50);box-shadow:inset 0 0 0 1.5px var(--tint-2)}
+#decomp.has-sel .wf-row:not(.sel):not(.total){opacity:.55}
+.wf-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.wf-l{font-size:13.5px;font-weight:700}
+.wf-v{font-size:15px;font-weight:800;white-space:nowrap}
+.wf-v.neg{color:var(--warn)} .wf-v.pos{color:var(--ok)} .wf-v.zero{color:var(--ink-3)}
+.wf-track{position:relative;height:14px;margin:7px 0 6px}
+.wf-track .z{position:absolute;top:-4px;bottom:-4px;width:0;border-left:1.5px dashed var(--brand-400)}
+.wf-track .lk{position:absolute;top:-17px;height:17px;width:0;border-left:1px dotted var(--ink-3);opacity:.6}
+.wf-bar{position:absolute;top:0;bottom:0;border-radius:5px;min-width:3px;transition:left .35s var(--ease),width .35s var(--ease),background .2s}
+.wf-bar.neg{background:var(--warn-icon)} .wf-bar.pos{background:var(--ok-fill)}
+.wf-sub{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink-3);font-weight:600}
+.wf-sub .loc{display:inline-flex;align-items:center;gap:4px;color:var(--brand-700);font-weight:700;white-space:nowrap}
+.wf-row.total{margin-top:4px;border-top:1px solid var(--line);border-radius:0 0 14px 14px;padding-top:12px}
+.wf-row.total .wf-l{font-weight:800}
+.wf-bar.tot.neg{background:var(--warn)} .wf-bar.tot.pos{background:var(--ok)}
+
+/* ---------- zones */
+.zrow{padding:10px 0 4px;border-top:1px solid var(--line)}
+.zrow:first-of-type{border-top:0;padding-top:0}
+.zh{display:flex;align-items:center;gap:9px}
+.zh .zic{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;color:#fff;background:var(--brand);font-size:12px;font-weight:800}
+.zh .zic.unl{background:var(--brand-800)} .zh .zic.st{background:var(--ink-2)}
+.zh .zt{min-width:0;flex:1}
+.zh .zt b{display:block;font-size:13.5px;font-weight:800}
+.zh .zt span{display:block;font-size:11.5px;color:var(--ink-3);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zh .zv{text-align:right;white-space:nowrap}
+.zh .zv b{display:block;font-size:17px;font-weight:800;letter-spacing:-.01em}
+.zh .zv span{display:block;font-size:11.5px;color:var(--ink-3);font-weight:700}
+.zh .zv b.neg{color:var(--warn)} .zh .zv b.pos{color:var(--ok)} .zh .zv b.na{color:var(--ink-3);font-size:14px}
+.zrow svg{display:block;width:100%;height:auto;margin-top:2px}
+.zrow svg text{font-family:inherit;font-variant-numeric:tabular-nums}
+.zverd{font-size:12px;font-weight:600;color:var(--ink-2);margin:2px 0 4px}
+
+/* ---------- di aplikasi */
+.inapp{display:flex;flex-direction:column;gap:8px}
+.inapp h2{font-size:13px;font-weight:800;color:var(--brand-800);letter-spacing:.02em;text-transform:uppercase}
+.ia{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--ink-2);font-weight:500}
+.ia .iai{flex:none;width:28px;height:28px;border-radius:9px;background:var(--brand-50);color:var(--brand-700);display:grid;place-items:center}
+.ia b{color:var(--ink);font-weight:800}
+.foot{margin:6px 20px 0;font-size:11px;color:var(--ink-3);font-weight:500;line-height:1.45}
+
+input[type=range]{-webkit-appearance:none;appearance:none;height:28px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:6px;background:var(--fillc)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-8px;border-radius:50%;background:var(--brand);border:3px solid #fff;box-shadow:0 2px 6px rgb(33 27 22/.35)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="hdr">
+    <div class="logo" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V7l6 5 6-5v10"/><circle cx="19" cy="15" r="2.2" stroke-dasharray="2.4 2"/></svg></div>
+    <div class="brandtxt"><b>Muatku · <em>Bayangan</em></b><span>Dump Truck 01 · BM 8921 KU</span></div>
+    <div class="live"><i></i>Live <span class="num" id="live-t">11:12</span></div>
+  </header>
+
+  <section class="card hero" style="--i:0" aria-live="polite">
+    <div class="eyebrow"><span class="pill ok" id="h-pill"><i></i>Normal</span><span class="muted" id="h-ref">vs bayangan median · 18 perjalanan</span></div>
+    <h1 id="h-title">—</h1>
+    <p class="sub" id="h-sub">—</p>
+    <div class="trip">
+      <div class="rt"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="6" r="2.5"/><path d="M7.5 18H14a3.5 3.5 0 0 0 0-7h-4a3.5 3.5 0 0 1 0-7h6.5"/></svg><span>Batu Ampar → PT RAPP</span></div>
+      <div class="eta">ETA ±12:34</div>
+      <div class="meta">dari 07:15 · 63 km lagi · 48 km/jam</div>
+      <div class="meta2" id="h-geta">bayangan 12:23</div>
+    </div>
+  </section>
+
+  <div class="mapdock" id="mapdock">
+    <div class="mapcard" id="mapcard">
+      <div id="map" aria-label="Peta: truk dan bayangan"></div>
+      <div class="seg glass" role="radiogroup" aria-label="Pilih bayangan">
+        <span class="lab">Bayangan</span>
+        <button role="radio" aria-checked="true" data-g="median">Median 30 hr</button>
+        <button role="radio" aria-checked="false" data-g="best">Terbaik</button>
+        <button role="radio" aria-checked="false" data-g="kemarin">Kemarin</button>
+      </div>
+      <div class="mbtns">
+        <button class="mbtn glass on" id="b-follow" aria-label="Ikuti truk dan bayangan" aria-pressed="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg></button>
+        <button class="mbtn glass" id="b-route" aria-label="Lihat seluruh rute"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h6.5a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7H16"/></svg></button>
+        <button class="mbtn glass" id="b-fs" aria-label="Peta layar penuh"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      </div>
+      <div class="gapchip glass" id="gapchip" aria-live="polite"><span class="gd" id="gc-d">−</span><div><b id="gc-a">—</b><span id="gc-b">—</span></div></div>
+      <button class="fs-exit glass" id="fs-exit" aria-label="Keluar dari peta penuh"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>Keluar</button>
+      <div class="mini glass">
+        <button class="tbtn pri" id="m-play" aria-label="Putar ulang perjalanan">▶</button>
+        <input type="range" id="m-range" min="0" max="330" step="1" value="330" aria-label="Geser waktu perjalanan">
+        <span class="mt num" id="m-t">11:12</span>
+      </div>
+    </div>
+  </div>
+
+  <section class="card" style="--i:1" id="race-card">
+    <div class="card-h"><h2>Posisi vs bayangan</h2><span class="muted" id="race-t">sekarang · 11:12</span></div>
+    <div class="race" id="race">
+      <div class="bandcap"><span id="band-cap">rentang biasa</span></div>
+      <span class="ln" style="grid-row:2;grid-column:1">Truk</span><div class="track" style="grid-row:2;grid-column:2"><div class="fill real" id="f-real"></div><div class="knob" id="k-real"></div></div><span class="lv" id="v-real" style="grid-row:2;grid-column:3">—</span>
+      <span class="ln" style="grid-row:3;grid-column:1">Bayangan</span><div class="track" style="grid-row:3;grid-column:2"><div class="fill ghost" id="f-ghost"></div><div class="knob gh" id="k-ghost"></div></div><span class="lv" id="v-ghost" style="grid-row:3;grid-column:3">—</span>
+      <div class="bandov"><i id="band-ov"></i></div>
+      <div class="axis" id="race-axis"></div>
+    </div>
+    <div class="status" id="race-status"><i></i><span>—</span></div>
+  </section>
+
+  <section class="card" style="--i:2" id="gap-card">
+    <div class="card-h"><h2>Selisih vs bayangan</h2>
+      <div class="ch-tools"><button class="tbtn" id="b-now" hidden aria-label="Kembali ke sekarang">↺</button><button class="tbtn pri" id="b-play" aria-label="Putar ulang perjalanan">▶ Putar ulang</button></div></div>
+    <div class="readout" id="readout">—</div>
+    <svg id="chart" viewBox="0 0 334 214" role="img" aria-label="Grafik selisih waktu truk terhadap bayangan, geser untuk melihat waktu lain"></svg>
+    <div class="legend"><span><i class="lg-line"></i>Truk</span><span><i class="lg-dash"></i>Bayangan (0)</span><span><i class="lg-band"></i>Rentang biasa (P10–P90)</span><span><i class="lg-out"></i>Di luar rentang</span></div>
+    <div class="status" id="outnote" hidden><i></i><span></span></div>
+    <div class="hint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12h8M5 9l-3 3 3 3M19 9l3 3-3 3"/></svg>Geser grafik untuk memutar waktu — truk & bayangan ikut bergerak di peta.</div>
+  </section>
+
+  <section class="card" style="--i:3" id="decomp">
+    <div class="card-h"><h2>Dari mana selisihnya?</h2><span class="muted" id="dc-t">sampai km 162 · 11:12</span></div>
+    <div class="wf-axis"><span>← lebih lambat</span><span>bayangan</span><span>lebih cepat →</span></div>
+    <div id="wf"></div>
+  </section>
+
+  <section class="card" style="--i:4" id="zones">
+    <div class="card-h"><h2>Di zona: hari ini vs biasanya</h2><span class="muted">30 hari · 18 perjalanan</span></div>
+    <div id="zrows"></div>
+  </section>
+
+  <section class="card inapp" style="--i:5">
+    <h2>Di aplikasi</h2>
+    <div class="ia"><span class="iai"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span><div><b>Posisi</b> — truk bayangan transparan + chip « <span id="ia-chip">11 mnt lebih lambat</span> » di peta perjalanan berjalan.</div></div>
+    <div class="ia"><span class="iai"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></span><div><b>Riwayat › detail perjalanan</b> — blok « vs bayangan » : rincian selisih muat · berhenti · jalan.</div></div>
+  </section>
+  <p class="foot">Simulasi: 18 perjalanan Batu Ampar → PT RAPP (30 hari) dibuat deterministik di sekitar angka demo; bayangan median = median tunggu, berhenti & laju per km. Rute OSRM asli · peta © OpenStreetMap.</p>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="route.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

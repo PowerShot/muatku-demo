@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f6f3ef">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<title>Muatku · Profil Rute</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+:root{
+  --brand:#007879;--b400:#2aa69e;--b600:#006d6e;--b700:#006264;--b800:#004f51;--b50:#eaf9f7;--tint:#d6f2ef;--tint2:#b9e8e2;
+  --surface:#fff;--canvas:#f6f3ef;--line:#e8e3dd;--fillc:#f3efea;--ink:#211b16;--ink2:#57504a;--ink3:#6b655f;
+  --ok:#1f7a3d;--okbg:#e5f4ea;--warn:#8f520c;--warni:#dd9314;--warnbg:#fbf0db;--empty:#85461b;--emptyi:#c0763e;--emptybg:#f7ebdf;
+  --sh-float:0 1px 2px rgb(33 27 22/.08),0 6px 18px -4px rgb(33 27 22/.18);
+  --sh-sheet:0 -1px 0 rgb(33 27 22/.04),0 -12px 32px -6px rgb(33 27 22/.16);
+  --sh-card:0 1px 2px rgb(33 27 22/.05),0 4px 12px -6px rgb(33 27 22/.1);
+  --dir:var(--brand);--dirink:var(--b700);--dirbg:var(--tint);--oth:var(--emptyi);
+  --col:min(100vw,430px);
+}
+body.back{--dir:var(--emptyi);--dirink:var(--empty);--dirbg:var(--emptybg);--oth:var(--brand)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--canvas)}
+body{font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:var(--ink);font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+:focus-visible{outline:2.5px solid var(--brand);outline-offset:2px;border-radius:8px}
+.num,svg text{font-variant-numeric:tabular-nums}
+.app{max-width:430px;margin:0 auto;padding-bottom:150px;min-height:100dvh}
+
+/* en-tête */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 16px;background:rgb(246 243 239/.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid transparent;transition:border-color .2s}
+.top.sc{border-color:var(--line)}
+.brand{display:flex;align-items:center;gap:8px;font-size:15px}
+.logo{width:26px;height:26px;border-radius:8px;background:var(--brand);display:grid;place-items:center;box-shadow:0 4px 10px -4px rgb(0 79 81/.6)}
+.brand b{font-weight:800;letter-spacing:-.01em}.brand .sep{color:var(--ink3)}.brand .cn{font-weight:600;color:var(--ink2)}
+.unit{font-size:12px;font-weight:700;color:var(--ink2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 10px}
+
+/* conclusion */
+.hero{margin:6px 12px 0;background:var(--surface);border-radius:20px;padding:15px 16px 14px;box-shadow:var(--sh-card);position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--dir);transition:background .4s}
+.eyebrow{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
+.eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--dir)}
+.hero h1{margin:7px 0 5px;font-size:19.5px;line-height:1.28;font-weight:800;letter-spacing:-.015em;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--dirink)}
+.hero p{margin:0;font-size:13px;color:var(--ink2);text-wrap:pretty}
+.fade{transition:opacity .25s}.fade.out{opacity:0}
+
+/* contrôles */
+.ctrl{display:flex;gap:8px;margin:12px 12px 0}
+.seg{display:flex;background:var(--fillc);border-radius:14px;padding:3px;gap:2px}
+.seg.dir{flex:1}
+.seg button{flex:1;height:40px;border-radius:11px;font-size:12.5px;font-weight:700;color:var(--ink2);display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;transition:background .25s,color .25s,box-shadow .25s}
+.seg.per button{flex:none;width:44px}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(33 27 22/.1)}
+.seg.dir button[data-dir=go][aria-pressed=true]{color:var(--b700)}
+.seg.dir button[data-dir=back][aria-pressed=true]{color:var(--empty)}
+.sw{width:10px;height:10px;border-radius:3px;background:var(--brand)}.sw.e{background:var(--emptyi)}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 12px 0}
+.kpi{background:var(--surface);border-radius:14px;padding:8px 9px 8px;box-shadow:var(--sh-card);min-width:0}
+.kpi span{display:block;font-size:10.5px;font-weight:600;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi b{display:block;font-size:16px;font-weight:800;letter-spacing:-.01em;margin-top:1px;white-space:nowrap}
+.kpi b small{font-size:10.5px;font-weight:700;color:var(--ink3)}
+.kpi.w b{color:var(--warn)}
+
+/* bande */
+.band{margin:10px 12px 0;background:var(--surface);border-radius:20px;box-shadow:var(--sh-card);padding:10px 8px 6px;position:relative}
+.bt{display:flex;align-items:baseline;justify-content:space-between;padding:2px 6px 4px}
+.bt b{font-size:14px;font-weight:800;white-space:nowrap}.bt span{font-size:11.5px;color:var(--ink3);font-weight:600;white-space:nowrap}
+#band{display:block;width:100%;height:auto;touch-action:pan-y;cursor:pointer;user-select:none;-webkit-user-select:none}
+#band .bar{transition:width .65s cubic-bezier(.2,.8,.2,1),fill .4s}
+#band .bar{fill:var(--dir)}
+#band .ghost{stroke:var(--oth);transition:stroke .4s,opacity .3s}
+#band .lbl{paint-order:stroke;stroke:#fff;stroke-width:3.5px;stroke-linejoin:round}
+#band .stop{transition:r .5s cubic-bezier(.2,.8,.2,1)}
+#band .selrow{fill:var(--dirbg);transition:y .25s cubic-bezier(.2,.8,.2,1),opacity .2s}
+#band .selacc{fill:var(--dir);transition:y .25s cubic-bezier(.2,.8,.2,1),opacity .2s}
+#band .prog{fill:var(--brand);opacity:.32}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pl 2s ease-out infinite}
+@keyframes pl{0%{opacity:.5;transform:scale(.6)}100%{opacity:0;transform:scale(1.9)}}
+.legend{display:flex;flex-wrap:wrap;gap:5px 12px;padding:8px 6px 6px;border-top:1px solid var(--line);margin-top:4px;font-size:11px;color:var(--ink2);font-weight:600}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.lg-bar{width:16px;height:8px;border-radius:2px;background:var(--dir)}
+.lg-gh{width:16px;height:0;border-top:2px dashed var(--oth)}
+.lg-td{width:2.5px;height:11px;background:var(--ink);border-radius:1px}
+.lg-st{width:10px;height:10px;border-radius:50%;background:var(--ink2)}
+.lg-ng{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid var(--warni)}
+.hint{display:flex;align-items:center;gap:6px;margin:8px 18px 0;font-size:12px;color:var(--ink3);font-weight:600}
+
+/* di aplikasi */
+.where{margin:12px 12px 0;padding:11px 14px;border-radius:14px;border:1px dashed #d6cfc6;font-size:12.5px;color:var(--ink2);line-height:1.45}
+.where .wk{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--b700);background:var(--tint);border-radius:6px;padding:2px 6px;margin-right:4px}
+.where b{color:var(--ink)}
+.sim{margin:8px 16px 0;font-size:10.5px;color:var(--ink3);line-height:1.4}
+
+/* live */
+.live{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));width:calc(var(--col) - 20px);background:var(--surface);border-radius:20px;box-shadow:var(--sh-float),0 0 0 1px rgb(33 27 22/.04);padding:10px 12px 10px;transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.live.hide{transform:translate(-50%,130%);opacity:0}
+.l1{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2);white-space:nowrap}
+.l1 .dotl{position:relative;width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
+.l1 .dotl::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--ok);animation:pl2 1.8s ease-out infinite}
+@keyframes pl2{0%{opacity:.7;transform:scale(.5)}100%{opacity:0;transform:scale(1.4)}}
+.l1 b{color:var(--ink);font-weight:800}
+.l1 .eta{margin-left:auto;background:var(--tint);color:var(--b800);font-weight:700;border-radius:999px;padding:3px 9px;font-size:12px}
+.nx{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.nxrow{display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:center;text-align:left;width:100%}
+.nx .n{width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:10.5px;font-weight:800;display:grid;place-items:center}
+.nxh{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:-1px}
+.nx .t{font-size:12.5px;line-height:1.3;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nx .t b{font-weight:700}.nx .t span{color:var(--ink3)}
+.nx .k{font-size:11.5px;font-weight:700;color:var(--ink2);background:var(--fillc);border-radius:8px;padding:3px 7px;white-space:nowrap}
+
+
+/* sheet */
+.scrim{position:fixed;inset:0;z-index:40;background:rgb(33 27 22/.22);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;z-index:41;left:50%;bottom:0;width:var(--col);transform:translate(-50%,105%);background:var(--surface);border-radius:28px 28px 0 0;box-shadow:var(--sh-sheet);max-height:86dvh;overflow-y:auto;overscroll-behavior:contain;padding:8px 16px calc(16px + env(safe-area-inset-bottom));transition:transform .4s cubic-bezier(.2,.8,.2,1)}
+.sheet.on{transform:translate(-50%,0)}
+.grab{display:block;width:40px;height:5px;border-radius:5px;background:#d9d2ca;margin:2px auto 10px;position:relative}
+.grab::before{content:"";position:absolute;inset:-12px -80px -10px}
+.sh-top{display:flex;align-items:flex-start;gap:10px}
+.sh-top>div{flex:1;min-width:0}
+.sh-eb{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dirink);display:flex;align-items:center;gap:6px}
+.sh-eb i{width:8px;height:8px;border-radius:2px;background:var(--dir)}
+.sh-top h2{margin:3px 0 1px;font-size:21px;font-weight:800;letter-spacing:-.015em}
+.sh-sub{font-size:12.5px;color:var(--ink3)}
+.x{width:36px;height:36px;border-radius:50%;background:var(--fillc);display:grid;place-items:center;flex:none;font-size:15px;color:var(--ink2)}
+.sts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.st{background:var(--canvas);border-radius:14px;padding:9px 10px;min-width:0}
+.st span{display:block;font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.03em}
+.st b{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em;margin-top:2px;line-height:1.1}
+.st b small{font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:0}
+.st em{display:block;font-style:normal;font-size:11px;color:var(--ink3);margin-top:2px;font-weight:600;line-height:1.25}
+.st em.up{color:var(--ok)}.st em.dn{color:var(--warn)}
+.st.hl{background:var(--dirbg)}
+.st.hl b{color:var(--dirink)}
+.blk{margin-top:14px}
+.blk h3{margin:0 0 6px;font-size:12px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;display:flex;justify-content:space-between}
+.blk h3 small{font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink3);font-size:11.5px}
+.dotsv{display:block;width:100%;height:auto}
+.plc{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.plc:first-of-type{border-top:0}
+.plc .pc{flex:none;border-radius:50%;background:var(--ink2)}
+.plc div{flex:1;min-width:0}.plc div b{display:block;font-size:13.5px;font-weight:700}
+.plc div span{font-size:12px;color:var(--ink3)}
+.plc .pv{font-size:13px;font-weight:800;white-space:nowrap}
+.none{font-size:13px;color:var(--ink3);padding:4px 0}
+.ngb{display:flex;align-items:center;gap:10px;background:var(--warnbg);color:var(--warn);border-radius:14px;padding:10px 12px;font-size:13px;font-weight:600}
+.ngb b{font-weight:800}
+.ngb.ok{background:var(--okbg);color:var(--ok)}
+.cmp{margin-top:10px;font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:8px}
+.cmp i{width:16px;border-top:2px dashed var(--oth)}
+.acts{display:flex;gap:8px;margin-top:14px}
+.acts .nav{width:52px;height:48px;border-radius:14px;background:var(--fillc);font-size:12px;font-weight:700;color:var(--ink2);display:grid;place-items:center;line-height:1.05}
+.acts .nav:disabled{opacity:.35}
+.primary{flex:1;height:48px;border-radius:14px;background:var(--brand);color:#fff;font-weight:700;font-size:14.5px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 10px 20px -10px rgb(0 79 81/.7)}
+.primary:active{background:var(--b800)}
+
+/* carte */
+.mapov{position:fixed;inset:0;z-index:60;left:50%;width:var(--col);transform:translateX(-50%);background:#eef0ec;opacity:0;pointer-events:none;transition:opacity .25s}
+.mapov.on{opacity:1;pointer-events:auto}
+#map{position:absolute;inset:0}
+.mapbar{position:absolute;z-index:500;left:10px;right:10px;top:calc(10px + env(safe-area-inset-top));display:flex;gap:8px;align-items:center}
+.mapbar .mt{flex:1;min-width:0;background:var(--surface);border-radius:14px;box-shadow:var(--sh-float);padding:7px 12px}
+.mapbar .mt b{display:block;font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mapbar .mt span{font-size:11.5px;color:var(--ink3);font-weight:600}
+.mbtn{width:46px;height:46px;border-radius:14px;background:var(--surface);box-shadow:var(--sh-float);display:grid;place-items:center;font-size:17px;color:var(--ink);flex:none}
+.mleg{position:absolute;z-index:500;left:10px;bottom:calc(12px + env(safe-area-inset-bottom));background:var(--surface);border-radius:14px;box-shadow:var(--sh-float);padding:8px 11px;font-size:11.5px;font-weight:600;color:var(--ink2);display:flex;gap:12px;flex-wrap:wrap;right:10px}
+.mleg span{display:inline-flex;align-items:center;gap:6px}
+.mleg i{display:inline-block}
+.leaflet-container{font-family:inherit;background:#eef0ec}
+.tlab{background:none;border:0}
+.tlab span{display:inline-block;transform:translate(-50%,-50%);white-space:nowrap;font-size:11.5px;font-weight:800;color:var(--ink);background:rgb(255 255 255/.92);border-radius:7px;padding:2px 6px;box-shadow:0 1px 3px rgb(33 27 22/.18)}
+.tlab.tw span{transform:translate(-50%,calc(-100% - 9px))}
+.tlab.sl span{font-weight:700;color:var(--ink2);font-size:11px;transform:translate(-50%,12px)}
+.trk{width:30px;height:30px;border-radius:50%;background:var(--brand);border:3px solid #fff;box-shadow:0 3px 10px rgb(0 79 81/.5);display:grid;place-items:center}
+.leaflet-control-attribution{font-size:9.5px!important}
+.leaflet-bottom.leaflet-right{bottom:calc(58px + env(safe-area-inset-bottom))}
+.leaflet-top.leaflet-left{top:calc(66px + env(safe-area-inset-top))}
+.leaflet-touch .leaflet-bar a{width:40px;height:40px;line-height:40px}
+.leaflet-touch .leaflet-bar{border:0;box-shadow:var(--sh-float);border-radius:12px;overflow:hidden}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:0s!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top" id="top">
+    <div class="brand"><span class="logo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4c3 0 3 3 6 3s3-3 6-3v9c-3 0-3 3-6 3s-3-3-6-3"/></svg></span><b>Muatku</b><span class="sep">·</span><span class="cn">Profil Rute</span></div>
+    <div class="unit">BM 8921 KU</div>
+  </header>
+
+  <section class="hero" aria-live="polite">
+    <div class="eyebrow"><i></i><span id="eb">Kesimpulan · 30 hari</span></div>
+    <h1 id="headline" class="fade"></h1>
+    <p id="subline" class="fade"></p>
+  </section>
+
+  <div class="ctrl">
+    <div class="seg dir" role="group" aria-label="Arah">
+      <button data-dir="go" aria-pressed="true"><span class="sw"></span>Pergi · bermuatan</button>
+      <button data-dir="back" aria-pressed="false"><span class="sw e"></span>Pulang · kosong</button>
+    </div>
+    <div class="seg per" role="group" aria-label="Periode">
+      <button data-p="7" aria-pressed="false">7 h</button>
+      <button data-p="30" aria-pressed="true">30 h</button>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section class="band">
+    <div class="bt"><b>Batu Ampar → PT RAPP</b><span id="bt-s">225 km · 9 perjalanan</span></div>
+    <svg id="band" role="img" aria-label="Profil rute: kecepatan, berhenti dan ngebut per 5 km"></svg>
+    <div class="legend">
+      <span><i class="lg-bar"></i>Kecepatan rata-rata / 5 km</span>
+      <span id="lg-today"><i class="lg-td"></i>Hari ini</span>
+      <span><i class="lg-gh"></i><span id="lg-oth">Pulang kosong</span></span>
+      <span><i class="lg-st"></i>Berhenti di luar zona (besar = total mnt)</span>
+      <span><i class="lg-ng"></i>Ngebut &gt; 70 km/jam</span>
+      <span style="color:var(--ink3)">Mnt = waktu rata-rata per 5 km, termasuk berhenti</span>
+    </div>
+  </section>
+  <div class="hint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 11V6a2 2 0 1 1 4 0v5"/><path d="M13 10.5V9a2 2 0 1 1 4 0v4.5a6.5 6.5 0 0 1-12 3.4L3.6 14a1.8 1.8 0 0 1 3-2L9 15"/></svg>Ketuk satu baris untuk detail tronçon &amp; peta</div>
+
+  <div class="where"><span class="wk">Di aplikasi</span> <b>Laporan</b> › Per rute (profil 30 hari) · <b>Posisi</b> › kartu « Di depan » di bottom sheet truk.</div>
+  <p class="sim">Simulasi: 18 perjalanan dalam 30 hari dibuat deterministik di atas tracé OSRM nyata (src/config/route.ts, 225,5 km). Kota dari OpenStreetMap; nama tempat berhenti ilustratif.</p>
+</div>
+
+<aside class="live" id="live" aria-live="polite">
+  <div class="l1"><span class="dotl"></span><b>Dump Truck 01</b>· km <b id="lv-km" class="num">162</b> · <span id="lv-v" class="num">48</span> km/jam<span class="eta">ETA ±<span id="lv-eta" class="num">12:34</span></span></div>
+  <div class="nx" id="lv-nx"></div>
+</aside>
+
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" aria-hidden="true" role="dialog" aria-label="Detail tronçon">
+  <button class="grab" id="grab" aria-label="Tutup detail"></button>
+  <div id="sh"></div>
+</section>
+
+<section class="mapov" id="mapov" aria-hidden="true">
+  <div id="map"></div>
+  <div class="mapbar">
+    <button class="mbtn" id="map-x" aria-label="Tutup peta">✕</button>
+    <div class="mt"><b id="map-t">—</b><span id="map-s"></span></div>
+    <button class="mbtn" id="map-fs" aria-label="Peta layar penuh">⤢</button>
+  </div>
+  <div class="mleg"><span><i style="width:18px;height:5px;border-radius:3px;background:var(--dir)"></i>Tronçon</span><span><i style="width:18px;height:3px;border-radius:3px;background:#57504a;opacity:.6"></i>Rute</span><span><i style="width:10px;height:10px;border-radius:50%;background:#57504a"></i>Berhenti</span><span><i style="width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 2px #fff,0 0 0 3px var(--brand)"></i>Truk</span></div>
+</section>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
