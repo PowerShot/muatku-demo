@@ -353,13 +353,13 @@ function goal(m) {
     if (followYaw === null) followYaw = brg; else followYaw += angDiff(followYaw, brg) * 0.02;
     const look = at(MAIN, Math.min(MAIN.len, sT + 4));
     const drift = RM ? 0 : Math.sin(time * 0.09) * 3.5;
-    return { tx: look[0], ty: look[1], tz: 0, yaw: followYaw + drift + user.yaw, pitch: clamp(25 + user.pitch + (RM ? 0 : Math.sin(time * 0.06) * 1.1), 12, 70), dist: 40, fov: 36, cy: 0.43 };
+    return { tx: look[0], ty: look[1], tz: 0, yaw: followYaw + drift + user.yaw, pitch: clamp(30 + user.pitch + (RM ? 0 : Math.sin(time * 0.06) * 1.1), 12, 70), dist: 70, fov: 36, cy: 0.535 };
   }
   if (m === 'riwayat') {
     const t2 = rw.trip === 't2';
-    return { tx: RW_C[0] + (t2 ? 6 : -6), ty: RW_C[1], tz: 8, yaw: (t2 ? 59 : -121) + user.yaw, pitch: clamp(26 + user.pitch, 12, 80), dist: 470, fov: 50, cy: 0.225 };
+    return { tx: RW_C[0] + (t2 ? 6 : -6), ty: RW_C[1], tz: 8, yaw: (t2 ? 59 : -121) + user.yaw, pitch: clamp(26 + user.pitch, 12, 80), dist: 470, fov: 50, cy: 0.245 };
   }
-  return { tx: 8, ty: -2, tz: 0, yaw: user.yaw, pitch: clamp(55 + user.pitch, 20, 86), dist: 505, fov: 46, cy: 0.27 };
+  return { tx: 2, ty: 0, tz: 0, yaw: -121 + user.yaw, pitch: clamp(46 + user.pitch, 20, 86), dist: 560, fov: 46, cy: 0.418 };
 }
 
 /* ------------------------------------------------------------ rendu ------- */
@@ -452,9 +452,10 @@ function drawShadows(objs) {
   ctx.fillStyle = 'rgba(66,44,72,.22)'; ctx.fill();
 }
 
+const colH = (z) => 1.1 + (z.min / 60) * 2.3; // Laporan : hauteur de colonne = heures passées en zone
 function zoneObj(z, k) {
   const L = ease(mw.laporan), x = z.p[0], y = z.p[1];
-  const r = lerp(z.r, 2.7, L), h = lerp(z.h, 1.1 + (z.min / 60) * 1.45, L);
+  const r = lerp(z.r, 3.4, L), h = lerp(z.h, colH(z), L);
   const c = proj(x, y, h / 2);
   if (!c) return null;
   const muat = z.type === 'muat';
@@ -580,7 +581,7 @@ function mkLabel(cls, html, m, anchor) {
 for (const k in Z) {
   const z = Z[k];
   mkLabel(z.type + (k === 'RAPP' ? ' dest' : ''), `<div class="nm"><i></i>${k === 'RAPP' ? 'Tujuan · ' : ''}${z.name}</div><div class="dt"><b>${z.visits}</b> kunjungan · tunggu rata² <b>${jm(z.avg)}</b></div>`, 'posisi', () => [z.p[0], z.p[1], z.h + 0.4]);
-  mkLabel('col ' + z.type, `<div class="hh">${Math.floor(z.min / 60)}<small>j</small> ${String(z.min % 60).padStart(2, '0')}<small>m</small></div><div class="nm"><i></i>${z.short} · ${z.visits}×</div>`, 'laporan', () => [z.p[0], z.p[1], lerp(z.h, 1.1 + (z.min / 60) * 1.45, ease(mw.laporan)) + 0.5]);
+  mkLabel('col ' + z.type, `<div class="hh">${Math.floor(z.min / 60)}<small>j</small> ${String(z.min % 60).padStart(2, '0')}<small>m</small></div><div class="nm"><i></i>${z.short} · ${z.visits}×</div>`, 'laporan', () => [z.p[0], z.p[1], lerp(z.h, colH(z), ease(mw.laporan)) + 0.5]);
 }
 const lbTruck = mkLabel('truck', '<div class="sp">48<small>km/jam</small></div><div class="eta">63 km · tiba ± 12:34</div>', 'posisi', () => (truckState ? [truckState.x, truckState.y, truckState.top + 0.3] : null));
 const lbReplay = mkLabel('truck', '<div class="sp">0<small>km/jam</small></div><div class="eta">07:15</div>', 'riwayat', () => (truckState ? [truckState.x, truckState.y, truckState.top + 0.6] : null));
@@ -589,20 +590,47 @@ const lbTo = mkLabel('flag bongkar', '<div class="nm"><i></i>PT RAPP · 11:52</d
 const lbStop = mkLabel('flag', '<div class="nm">Berhenti 21 mnt</div>', 'riwayat', () => { const tr = TRIPS[rw.trip]; if (!tr.stop || !wallCache) return null; const q = wallCache[tr.prof.stopIdx]; return [q[0], q[1], 0.5]; });
 const lbVmax = mkLabel('flag', '<div class="nm">vmax 84 km/jam</div>', 'riwayat', () => { if (!wallCache) return null; const q = wallCache[TRIPS[rw.trip].prof.vmaxIdx]; return [q[0], q[1], q[2] + 0.5]; });
 function placeLabels(k) {
+  const topLim = mode === 'laporan' ? 158 : mode === 'riwayat' ? 106 : 66, vis = [];
   for (const l of labels) {
-    let op = mw[l.m];
-    let s = null;
+    let op = mw[l.m], s = null;
     if (op > 0.01) { const a = l.anchor(); if (a) s = proj(a[0], a[1], a[2]); }
     if (s) {
       if (s[0] < -60 || s[0] > Wd + 60 || s[1] < 40 || s[1] > k.bottom) op = 0;
       else if (l.m === 'posisi' && l !== lbTruck) op *= clamp((150 - s[2]) / 40, 0, 1) * smooth(70, 110, s[1]);
     } else op = 0;
     if (l === lbStop && !TRIPS[rw.trip].stop) op = 0;
-    op = Math.round(op * 100) / 100;
+    l.s = s; l.o = op;
+    if (op > 0) {
+      if (!l.w) { const t = l.el.querySelector('.tag3'), st = l.el.querySelector('.stem'); l.tag = t; l.stem = st; l.w = t.offsetWidth; l.h = t.offsetHeight; l.sb = st.offsetHeight; }
+      vis.push(l);
+    }
+  }
+  // camion d'abord, puis du plus proche (bas de l'écran) au plus lointain : les lointains montent d'un cran
+  const pri = (l) => (l === lbTruck || l === lbReplay ? 3 : l === lbFrom || l === lbTo ? 2 : 0);
+  vis.sort((a, b) => pri(b) - pri(a) || b.s[1] - a.s[1]);
+  const boxes = [];
+  for (const l of vis) {
+    const x0 = clamp(l.s[0] - l.w / 2, 6, Wd - 6 - l.w), dx = clamp(x0 - (l.s[0] - l.w / 2), -l.w / 2 + 12, l.w / 2 - 12);
+    let lift = 0, bot = l.s[1] - l.sb - 3, guard = 0;
+    for (let hit = true; hit && guard < 8; guard++) {
+      hit = false;
+      for (const b of boxes) if (x0 < b[2] + 3 && x0 + l.w > b[0] - 3 && bot - lift - l.h < b[3] + 3 && bot - lift > b[1] - 3) { lift += bot - lift - b[1] + 4; hit = true; }
+    }
+    if (bot - lift - l.h < topLim) lift = 0; // trop haut : on accepte le chevauchement plutôt que de perdre l'étiquette
+    if (bot - lift - l.h < topLim) l.o = 0;
+    else boxes.push([x0, bot - lift - l.h, x0 + l.w, bot - lift]);
+    l.dx = Math.round(dx); l.lift = Math.round(lift);
+  }
+  for (const l of labels) {
+    const op = Math.round(l.o * 100) / 100, s = l.s;
     if (op !== l.op) { l.el.style.opacity = op; l.op = op; }
-    if (op > 0 && (Math.abs(s[0] - l.x) > 0.2 || Math.abs(s[1] - l.y) > 0.2)) { l.x = s[0]; l.y = s[1]; l.el.style.transform = `translate3d(${s[0].toFixed(1)}px,${s[1].toFixed(1)}px,0)`; }
+    if (op <= 0) continue;
+    if (Math.abs(s[0] - l.x) > 0.2 || Math.abs(s[1] - l.y) > 0.2) { l.x = s[0]; l.y = s[1]; l.el.style.transform = `translate3d(${s[0].toFixed(1)}px,${s[1].toFixed(1)}px,0)`; }
+    if (l.dx !== l.pdx) { l.pdx = l.dx; l.tag.style.transform = l.dx ? `translateX(${l.dx}px)` : ''; }
+    if (l.lift !== l.plift) { l.plift = l.lift; l.stem.style.height = (l.sb + l.lift) + 'px'; }
   }
 }
+if (document.fonts) document.fonts.ready.then(() => { for (const l of labels) l.w = 0; });
 
 /* ------------------------------------------------------------ boucle ------ */
 const needle = document.getElementById('needle'), kmLeft = document.getElementById('kmLeft');
@@ -635,7 +663,7 @@ function frame(now) {
     roadW: clamp(0.019 * cam.dist, 0.72, 1.7), treeK: clamp(cam.dist / 44, 1, 2.5), houseK: clamp(cam.dist / 44, 1, 2.2),
     truckPx: 50 * mw.posisi + 34 * mw.riwayat + 30 * mw.laporan, sunDir: sd,
     fog: (d) => smooth(fogNear, fogFar, d) * 0.55 * (1 - mw.laporan * 0.8),
-    bottom: mode === 'posisi' ? H - 84 - 250 : mode === 'riwayat' ? 344 : 404,
+    bottom: mode === 'posisi' ? H - 84 - 250 : mode === 'riwayat' ? 344 : 410,
   };
 
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);

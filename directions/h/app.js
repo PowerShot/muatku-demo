@@ -69,6 +69,9 @@
   }, { threshold: 0.15 }) : null;
   function arm(root) {
     $$('.ink', root).forEach(function (p) { try { p.style.setProperty('--len', Math.ceil(p.getTotalLength()) + 1); } catch (e) { /* hors DOM */ } });
+    $$('.grow,.growy,.ink,.fade', root).forEach(function (g) {
+      if (!g.closest('.viz')) { var sv = g.ownerSVGElement || g.closest('svg') || g.parentNode; if (sv && sv.classList) sv.classList.add('viz'); }
+    });
     $$('.viz', root).forEach(function (v) {
       if (RM || !io) { v.classList.add('drawn'); return; }
       v.classList.remove('drawn'); io.observe(v);
@@ -86,11 +89,11 @@
     return L.divIcon({ className: '', html: '<div class="mlbl' + (side === 'l' ? ' r' : '') + (cls ? ' ' + cls : '') + '">' + html + '</div>', iconSize: [0, 0], iconAnchor: side === 'l' ? [9, 8] : [-9, 8] });
   }
   function sq(cls) { return L.divIcon({ className: '', html: '<div class="zsq ' + (cls || '') + '"></div>', iconSize: [9, 9], iconAnchor: [4.5, 4.5] }); }
-  function zoneMarkers(layer, keep) {
+  function zoneMarkers(layer, keep, skip) {
     ['F-MUAT-01', 'F-MUAT-02', 'F-BONGKAR-01', 'F-BONGKAR-02', 'F-BONGKAR-03'].forEach(function (id) {
       var z = Z[id], on = keep.indexOf(id) >= 0;
       L.marker(z.at, { icon: sq((z.type === 'bongkar' ? 'b ' : '') + (on ? '' : 'dim')), interactive: false, keyboard: false }).addTo(layer);
-      if (!on) L.marker(z.at, { icon: lbl('<span style="color:var(--ink3);font-size:10px">' + z.short + '</span>', 'r'), interactive: false, keyboard: false }).addTo(layer);
+      if (!on && !(skip && skip(z.at))) L.marker(z.at, { icon: lbl('<span style="color:var(--ink3);font-size:10px">' + z.short + '</span>', 'r'), interactive: false, keyboard: false }).addTo(layer);
     });
   }
 
@@ -175,13 +178,13 @@
     lt.series.forEach(function (v, i) { pts.push([X(435 + i + 0.5), Y(v)]); });
     s += '<path class="ink" d="' + poly(pts) + '" fill="none" stroke="var(--ink)" stroke-width="1.1" stroke-linejoin="round"/>';
     var vi = lt.series.indexOf(Math.max.apply(null, lt.series));
-    s += '<g class="fade">' + annot(X(435) - 2, 42, 'berangkat 07:15', { anchor: 'end', lead: [X(435), 46, X(435), 82] }) +
+    s += '<g class="fade">' + annot(22, 11, 'berangkat 07:15', { lead: [X(435), 15, X(435), 82] }) +
       annot(X(435 + vi), Y(lt.series[vi]) - 7, 'maks ' + Math.round(lt.series[vi]), { anchor: 'middle' }) +
       annot(X(556), 112, 'berhenti 12 mnt', { anchor: 'middle', lead: [X(556), 103, X(556), 96] }) +
       annot(X(754) + 3, 50, 'tiba ± 12:34', { lead: [X(754), 30, X(754), 95] }) + '</g>';
     s += '<line x1="' + X(754) + '" y1="30" x2="' + X(754) + '" y2="95" stroke="var(--ink3)" stroke-width=".75" stroke-dasharray="1.5 2"/>';
     s += '<line x1="' + X(NOW) + '" y1="14" x2="' + X(NOW) + '" y2="98" stroke="var(--acc)" stroke-width="1.25"/><text class="annot acc" x="' + (X(NOW) + 3) + '" y="16">sekarang 11:14</text>';
-    for (var h = 6; h <= 21; h += 3) s += '<text class="ax" x="' + X(h * 60) + '" y="122" text-anchor="middle">' + p2(h) + '</text>';
+    for (var h = 6; h <= 21; h += 3) s += '<text class="ax" x="' + X(h * 60) + '" y="122" text-anchor="' + (h === 21 ? 'end' : 'middle') + '">' + p2(h) + '</text>';
     s += '<text class="ax" x="' + X(388) + '" y="105" text-anchor="middle" style="font-size:8px">muat</text>';
     return s + '</svg>';
   }
@@ -197,7 +200,7 @@
     L.marker(Z[H.BA].at, { icon: lbl('<span class="t">berangkat 07:15</span>Stockpile Batu Ampar', 'l'), interactive: false }).addTo(lmap);
     L.marker(Z[H.RA].at, { icon: lbl('<span class="t">tiba ± 12:34</span>PT RAPP — Power Station', 'r'), interactive: false }).addTo(lmap);
     lTruck = L.marker(truckPos(), { icon: L.divIcon({ className: '', html: '<div class="truck"></div>', iconSize: [14, 14], iconAnchor: [7, 7] }), keyboard: false, interactive: false }).addTo(lmap);
-    lTruckLbl = L.marker(truckPos(), { icon: lbl('<span class="t" style="color:var(--acc)">sekarang</span><span id="m-speed">48</span> km/jam', 'r', 'acc'), interactive: false }).addTo(lmap);
+    lTruckLbl = L.marker(truckPos(), { icon: lbl('<span class="t" style="color:var(--acc)">sekarang</span><span id="m-speed">48</span> km/jam', 'l', 'acc'), interactive: false }).addTo(lmap);
     fitLive();
     lmap.on('dragstart', function () { if (live.follow) { live.follow = false; $('#follow').setAttribute('aria-pressed', 'false'); } });
   }
@@ -325,8 +328,8 @@
         s += '<tr class="stop"><td class="t n">' + hm(e.t0) + '–' + hm(e.t1) + '</td><td class="g"><span class="sw g"></span></td><td>' + e.label + '</td><td class="r n">' + dur(e.t1 - e.t0) + '</td></tr>';
       } else {
         var t = e.trip, sel = t.id === R.trip;
-        var sub = KIND[t.kind] + ' · ' + dur(t.t1 - t.t0) + ' · maks ' + t.vmax;
-        var tag = t.kind === 'muat' ? (t.do ? '<span class="tag">' + t.do + '</span>' : '<span class="tag acc">tanpa DO</span>') : '';
+        var sub = KIND[t.kind] + ' · ' + dur(t.t1 - t.t0).replace(/ /g, '&nbsp;') + ' · maks&nbsp;' + t.vmax;
+        var tag = t.kind === 'muat' ? '<br>' + (t.do ? '<span class="tag">' + t.do + '</span>' : '<span class="tag acc">tanpa DO</span>') : '';
         s += '<tr class="trip' + (sel ? ' sel' : '') + '" data-trip="' + t.id + '" tabindex="0"><td class="t n">' + hm(t.t0) + '–' + (t.live ? 'kini' : hm(t.t1)) + '</td><td class="g" style="position:relative"><span class="sw ' + SW[t.kind] + '"></span></td>' +
           '<td><span class="ttl">' + zs(t.from) + ' → ' + zs(t.to) + '</span><span class="sub">' + sub + tag + '</span></td>' +
           '<td class="r"><span class="n" style="font-weight:500">' + f(t.km) + ' km</span><br>' + spark(bin(t.series, 6), 48, 12, { max: 85, dot: false }) + '</td></tr>';
@@ -359,7 +362,7 @@
       '<div class="readout" id="readout"><span class="hint">Sentuh &amp; geser grafik: jam, kecepatan, posisi di peta.</span></div>' +
       '<div class="viz">' + profileSvg(t) + '</div>' +
       '<div class="h2"><h2>Waktu per rentang kecepatan</h2><span class="k">menit</span></div><div class="viz">' + bands(t) + '</div>' +
-      '<div class="h2"><h2>Rute</h2><span class="k">' + f(t.km) + ' km · tracé OSRM</span></div></div>';
+      '<div class="h2"><h2>Rute</h2><span class="k">' + f(t.km) + ' km · jalur OSRM</span></div></div>';
     s += '<div class="map sm" id="map-trip" style="margin:6px calc(-1*var(--g)) 0"></div><div>';
     s += '<div class="h2"><h2>Berhenti &amp; tunggu</h2><span class="k">di zona dan di jalan</span></div>' + stopsTable(t, d);
     s += '<div class="h2"><h2>' + (t.kind === 'muat' ? 'DO &amp; biaya' : 'Biaya') + '</h2><span class="k">' + (t.do ? t.do : t.kind === 'muat' ? 'tanpa DO' : 'perkiraan') + '</span></div>' + costBlock(t, d) + '</div>';
@@ -453,7 +456,7 @@
     var sorted = vals.slice().sort(function (a, b) { return a - b; }), med = sorted[Math.floor(sorted.length / 2)];
     var s = '<svg width="' + w + '" height="74" viewBox="0 0 ' + w + ' 74" style="display:block;margin-top:14px"><text class="ax" x="0" y="9">Biaya per km muat, ' + all.length + ' ritase ber-DO (30 hari)</text>';
     s += '<line x1="4" y1="40" x2="' + (w - 4) + '" y2="40" stroke="var(--ink3)" stroke-width=".5"/>';
-    for (var v = lo; v <= hi; v += 2000) s += '<line x1="' + X(v) + '" y1="40" x2="' + X(v) + '" y2="43" stroke="var(--ink3)" stroke-width=".75"/><text class="ax" x="' + X(v) + '" y="54" text-anchor="middle">' + f(v / 1000) + ' rb</text>';
+    for (var v = lo; v <= hi; v += 2000) s += '<line x1="' + X(v) + '" y1="40" x2="' + X(v) + '" y2="43" stroke="var(--ink3)" stroke-width=".75"/><text class="ax" x="' + X(v) + '" y="54" text-anchor="' + (v === lo ? 'start' : v === hi ? 'end' : 'middle') + '">' + f(v / 1000) + ' rb</text>';
     all.forEach(function (a, i) { if (!a.me) s += '<rect x="' + (X(a.v) - 1.75) + '" y="' + (29 + (i % 3) * 3) + '" width="3.5" height="3.5" fill="none" stroke="var(--ink)" stroke-width=".9"/>'; });
     s += '<line x1="' + X(med) + '" y1="22" x2="' + X(med) + '" y2="40" stroke="var(--ink)" stroke-width=".75" stroke-dasharray="2 1.5"/>' + annot(X(med), 66, 'median ' + f(Math.round(med)), { anchor: 'middle' });
     var me = all.filter(function (a) { return a.me; })[0];
@@ -464,8 +467,14 @@
     if (dmap) { dmap.remove(); dmap = null; }
     dmap = baseMap('map-trip', { scrollWheelZoom: false });
     dLayer = L.layerGroup().addTo(dmap);
-    zoneMarkers(dLayer, [t.from, t.to].filter(function (z) { return Z[z].at; }));
     var c = H.cum(t.pts), gl = c[c.length - 1], sc = cumSeries(t.series), skm = sc[sc.length - 1];
+    var at0 = function (min) { return ptAt(t.pts, c, sc[Math.max(0, Math.min(t.series.length, min))] / skm * gl); };
+    dmap.fitBounds(L.latLngBounds(t.pts), { padding: [26, 26], animate: false });
+    var hot = t.stops.map(function (st) { return at0(st.t0 - t.t0); }).concat([at0(t.vmaxAt - t.t0)]).map(function (p) { return dmap.latLngToContainerPoint(p); });
+    zoneMarkers(dLayer, [t.from, t.to].filter(function (z) { return Z[z].at; }), function (ll) {
+      var q = dmap.latLngToContainerPoint(ll);
+      return hot.some(function (h) { return Math.abs(h.y - q.y) < 22 && Math.abs(h.x - q.x) < 130; });
+    });
     var col = t.kind === 'kosong' ? '#C23A1A' : t.kind === 'muat' ? '#161513' : '#6C685F';
     L.polyline(t.pts, { color: col, weight: t.kind === 'muat' ? 3.2 : 2.6, dashArray: t.kind === 'muat' ? null : '6 4', lineCap: 'butt', interactive: false }).addTo(dLayer);
     var at = function (min) { return ptAt(t.pts, c, sc[Math.max(0, Math.min(t.series.length, min))] / skm * gl); };
@@ -575,14 +584,13 @@
     segs.forEach(function (g, i) {
       var ww = X(g[1]);
       s += '<rect class="grow" x="' + x + '" y="20" width="' + ww + '" height="18" fill="' + g[2] + '"' + (g[0] === 'kosong' ? ' stroke="var(--acc)" stroke-width="1"' : g[0] === 'zona' || g[0] === 'jalan' ? ' stroke="var(--ink2)" stroke-width=".75"' : '') + '/>';
-      var top = i % 2 === 0 || i === 1, y1 = top ? 8 : 52, y2 = top ? 17 : 63;
-      if (i < 3) s += '<text class="ax' + (i === 1 ? ' b' : ' b') + '" x="' + (x + 2) + '" y="' + (i === 2 ? 52 : 8) + '"' + (i === 1 ? ' style="fill:var(--acc)"' : '') + '>' + g[3] + ' ' + hrs(g[1]) + '</text>';
+      if (i < 2) s += '<text class="ax b" x="' + (x + 1) + '" y="13"' + (i === 1 ? ' style="fill:var(--acc)"' : '') + '>' + g[3] + ' ' + hrs(g[1]) + '</text>';
       x += ww;
     });
-    var xj = X(M.muat + M.kosong + zMin);
-    s += '<line x1="' + (xj + X(rMin) / 2) + '" y1="38" x2="' + (xj + X(rMin) / 2) + '" y2="58" stroke="var(--ink)" stroke-width=".75"/><text class="ax b" x="' + (xj + X(rMin) / 2 - 3) + '" y="66" text-anchor="end">di jalan ' + hrs(rMin) + '</text>';
-    s += '<text class="ax" x="' + w + '" y="76" text-anchor="end">lainnya ' + hrs(M.lainnya) + '</text>';
-    s += '<text class="annot" x="' + X(M.muat + M.kosong) + '" y="76" style="font-size:10.5px">berhenti total ' + hrs(zMin + rMin).replace(' 30', '½') + '</text>';
+    var xa = X(M.muat + M.kosong), xj = X(M.muat + M.kosong + zMin), xb = X(M.muat + M.kosong + zMin + rMin);
+    s += '<path d="M' + xa + ' 42V46H' + xb + 'V42M' + xj + ' 38V46" fill="none" stroke="var(--ink)" stroke-width=".75"/>';
+    s += '<text class="ax b" x="' + xa + '" y="58">Berhenti ± ' + Math.round((zMin + rMin) / 60) + ' j</text><text class="ax" x="' + xa + '" y="70">' + hrs(zMin) + ' di zona · ' + hrs(rMin) + ' di jalan</text>';
+    s += '<text class="ax" x="' + w + '" y="13" text-anchor="end">lainnya ' + hrs(M.lainnya) + '</text>';
     return s + '</svg>';
   }
   function multiples() {
@@ -630,13 +638,13 @@
     data.forEach(function (d, i) {
       var x = 30 + i * (bw + gap);
       s += '<rect class="growy" x="' + x + '" y="' + Y(d.p) + '" width="' + bw + '" height="' + (118 - Y(d.p)) + '" fill="url(#hatch)" stroke="var(--acc)" stroke-width="1"/>';
-      s += '<text class="ax b" x="' + (x + bw / 2) + '" y="' + (Y(d.p) - 5) + '" text-anchor="middle">' + f(d.p) + '%</text>';
-      s += '<text class="ax" x="' + (x + bw / 2) + '" y="131" text-anchor="middle">' + d.lab + '</text><text class="ax" x="' + (x + bw / 2) + '" y="142" text-anchor="middle">' + f(d.km) + ' km</text>';
-      if (d === best) s += annot(x + bw / 2, Y(d.p) - 17, 'terbaik', { anchor: 'middle' });
+      var inside = d.p < avg - 1, lx = i === 4 ? x + bw : x + bw / 2, la = i === 4 ? 'end' : 'middle';
+      s += '<text class="ax b" x="' + (x + bw / 2) + '" y="' + (inside ? Y(d.p) + 12 : Y(d.p) - 5) + '" text-anchor="middle"' + (inside ? ' style="paint-order:stroke;stroke:var(--paper);stroke-width:3px"' : '') + '>' + f(d.p) + '%</text>';
+      s += '<text class="ax" x="' + lx + '" y="131" text-anchor="' + la + '">' + d.lab + '</text><text class="ax" x="' + lx + '" y="142" text-anchor="' + la + '">' + f(d.km) + ' km' + (i === 4 ? ' · 2 hari' : '') + '</text>';
+      if (d === best) s += annot(x + bw / 2, Y(d.p) + 27, 'terbaik', { anchor: 'middle' });
     });
     s += '<line x1="22" y1="118" x2="' + w + '" y2="118" stroke="var(--ink)" stroke-width=".75"/>';
-    s += '<line x1="22" y1="' + Y(avg) + '" x2="' + w + '" y2="' + Y(avg) + '" stroke="var(--ink)" stroke-width="1" stroke-dasharray="4 2"/>' + annot(w, Y(avg) + 12, 'rata-rata ' + f(avg) + '%', { anchor: 'end' });
-    s += annot(30 + 4 * (bw + gap) + bw / 2, 10, '2 hari', { anchor: 'middle' });
+    s += '<line x1="22" y1="' + Y(avg) + '" x2="' + w + '" y2="' + Y(avg) + '" stroke="var(--ink)" stroke-width="1" stroke-dasharray="4 2"/>' + annot(30 + 2 * (bw + gap) + bw / 2, Y(avg) - 4, 'rata-rata ' + f(avg) + '%', { anchor: 'middle' });
     return s + '</svg>';
   }
   function routeTable() {
