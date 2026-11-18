@@ -51,7 +51,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 .m-posisi { --scene-h: calc(100% - var(--tab-h)); --tt: 300px; --bt: calc(100% - var(--tab-h) - 360px); --bh: 220px; }
 .m-riwayat { --scene-h: 372px; --tt: 168px; --bt: 268px; --bh: 120px; }
-.m-laporan { --scene-h: 476px; --tt: 262px; --bt: 380px; --bh: 110px; --fade-h: 250px; }
+.m-laporan { --scene-h: 476px; --tt: 250px; --bt: 420px; --bh: 70px; --fade-h: 240px; }
 
 #touch { position: absolute; left: 0; right: 0; top: 0; height: var(--scene-h); z-index: 3; touch-action: none; cursor: grab; }
 #touch:active { cursor: grabbing; }
@@ -206,7 +206,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .hero-sub { padding-bottom: 6px; font: 500 13px/1.35 var(--sans); color: var(--ink-2); }
 .hero-sub b { color: var(--ink); }
 .hero-sub em { font-style: normal; font-weight: 700; color: var(--slate); }
-.legend-chip { position: absolute; left: 12px; top: calc(var(--scene-h) - 66px); display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 99px; background: rgba(251, 245, 234, .92); font: 600 10.5px/1 var(--sans); color: var(--ink-2); white-space: nowrap; box-shadow: 0 0 0 1px rgba(42, 36, 32, .06), 0 8px 16px -10px rgba(70, 40, 20, .5); pointer-events: none; }
+.legend-chip { position: static; margin: -2px 0 12px; width: max-content; display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 99px; background: rgba(251, 245, 234, .92); font: 600 10.5px/1 var(--sans); color: var(--ink-2); white-space: nowrap; box-shadow: 0 0 0 1px rgba(42, 36, 32, .06), 0 8px 16px -10px rgba(70, 40, 20, .5); pointer-events: none; }
 .lg { width: 16px; height: 6px; border-radius: 3px; margin-left: 4px; }
 .lg.load { background: var(--terra); }
 .lg.empty { background: var(--slate-l); box-shadow: inset 0 0 0 1.5px var(--slate); }

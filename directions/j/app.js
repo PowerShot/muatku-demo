@@ -230,7 +230,30 @@ function make3DLayer() {
   const local = (lng, lat) => { const m = maplibregl.MercatorCoordinate.fromLngLat([lng, lat], 0); return [(m.x - origin.x) / s, -(m.y - origin.y) / s]; };
   const P = new THREE.Matrix4(), vt = new THREE.Vector4(), vb = new THREE.Vector4();
   const tag = $('#btag');
-  let renderer, scene, camera, truck, beacon;
+  let renderer, scene, camera, truck, beacon, rib, ribGeo, curGeo, ribRef = 0, ribK = 1;
+  /* ruban lumineux du trajet parcouru : posé sur le relief point par point, surélevé, rideau dégradé dessous */
+  function buildRib() {
+    const c = S.ribCoords;
+    if (!c || c.length < 2) return;
+    ribRef = map.queryTerrainElevation([S.truck.lng, S.truck.lat]) || 0;
+    const n = c.length, L = c.map(([lng, lat]) => local(lng, lat));
+    const Z = c.map((q) => { const e = map.queryTerrainElevation(q); return e == null ? ribRef : e; });
+    const hw = 0.78 * S.k, h = 0.55 * S.k + 0.6;
+    const p = new Float32Array(n * 6), col = new Float32Array(n * 8), cp = new Float32Array(n * 6), cc = new Float32Array(n * 8), idx = [];
+    for (let i = 0; i < n; i++) {
+      const a = L[Math.max(0, i - 1)], b = L[Math.min(n - 1, i + 1)];
+      let dx = b[0] - a[0], dy = b[1] - a[1];
+      const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len;
+      const [x, y] = L[i], z = Z[i] + h, al = Math.min(1, i / (n - 1) / 0.35) * 0.95;
+      p.set([x - dy * hw, y + dx * hw, z, x + dy * hw, y - dx * hw, z], i * 6);
+      col.set([1, 0.52, 0.09, al, 1, 0.52, 0.09, al], i * 8);
+      cp.set([x, y, z, x, y, Z[i]], i * 6);
+      cc.set([1, 0.42, 0.04, al * 0.7, 1, 0.42, 0.04, 0], i * 8);
+      if (i < n - 1) { const k0 = i * 2; idx.push(k0, k0 + 1, k0 + 2, k0 + 1, k0 + 3, k0 + 2); }
+    }
+    ribGeo.setAttribute('position', new THREE.BufferAttribute(p, 3)); ribGeo.setAttribute('color', new THREE.BufferAttribute(col, 4)); ribGeo.setIndex(idx);
+    curGeo.setAttribute('position', new THREE.BufferAttribute(cp, 3)); curGeo.setAttribute('color', new THREE.BufferAttribute(cc, 4)); curGeo.setIndex(idx);
+  }
   return {
     id: 'drone3d', type: 'custom', renderingMode: '3d',
     onAdd(m, gl) {
@@ -238,6 +261,12 @@ function make3DLayer() {
       const hemi = new THREE.HemisphereLight(0xe2efff, 0x5b5040, 1.55); hemi.position.set(0, 0, 1); scene.add(hemi);
       const sun = new THREE.DirectionalLight(0xfff0d6, 2.5); sun.position.set(-0.45, 0.55, 1); scene.add(sun);
       truck = buildTruck(); beacon = buildBeacon(); scene.add(truck.g, beacon.g);
+      ribGeo = new THREE.BufferGeometry(); curGeo = new THREE.BufferGeometry();
+      rib = new THREE.Group();
+      rib.add(new THREE.Mesh(ribGeo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, side: THREE.DoubleSide, depthWrite: false })));
+      rib.add(new THREE.Mesh(curGeo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })));
+      rib.traverse((o) => { o.frustumCulled = false; });
+      scene.add(rib);
       renderer = new THREE.WebGLRenderer({ canvas: m.getCanvas(), context: gl, antialias: true });
       renderer.autoClear = false;
     },
@@ -259,7 +288,10 @@ function make3DLayer() {
         truck.g.scale.setScalar(S.k);
         truck.wheels.forEach((w) => { w.rotation.x = -T.spin; });
         truck.load.visible = T.loaded;
+        if (S.ribDirty || Math.abs(S.k - ribK) / ribK > 0.12) { S.ribDirty = false; ribK = S.k; buildRib(); }
+        rib.position.z = alt - ribRef;
       }
+      rib.visible = truck.g.visible && !!S.ribCoords && S.ribCoords.length > 1;
       const B = S.beacon;
       beacon.g.visible = B.visible;
       let shown = false;
@@ -322,6 +354,13 @@ function initMap() {
     else { S.flying = false; S.flyTok++; S.holdUntil = performance.now() + 6000; }
   }));
   map.on('moveend', (e) => { if (e.originalEvent) syncCam(); });
+  // jumpTo() à chaque frame annulerait le geste : la caméra se met en pause tant que le doigt est posé
+  const press = () => { S.pressed = true; };
+  map.on('mousedown', press); map.on('touchstart', press);
+  ['pointerup', 'pointercancel', 'touchend'].forEach((ev) => window.addEventListener(ev, () => { S.pressed = false; syncCam(); }));
+  map.getCanvasContainer().addEventListener('wheel', () => {
+    if (S.screen === 'posisi') { if (S.cam !== 'bebas') setCam('bebas'); } else S.holdUntil = performance.now() + 6000;
+  }, { passive: true });
   map.on('load', onLoad);
 }
 
@@ -369,12 +408,10 @@ function onLoad() {
   const W = (a, b, c) => ['interpolate', ['exponential', 1.6], ['zoom'], 8, a, 14, b, 19, c];
   map.addSource('trail', { type: 'geojson', lineMetrics: true, data: fc([]) });
   map.addSource('rest', { type: 'geojson', data: fc([]) });
-  map.addSource('ribbon', { type: 'geojson', data: fc([]) });
   map.addLayer({ id: 'rest-case', type: 'line', source: 'rest', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': W(4, 6, 18), 'line-opacity': 0.45, 'line-blur': 1 } }, before);
   map.addLayer({ id: 'rest', type: 'line', source: 'rest', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#1a2b38', 'line-width': W(2.6, 4, 11), 'line-dasharray': [0.01, 2.4] } }, before);
   map.addLayer({ id: 'trail-glow', type: 'line', source: 'trail', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': AMBER, 'line-width': W(10, 18, 70), 'line-blur': W(7, 12, 46), 'line-opacity': 0.5 } }, before);
   map.addLayer({ id: 'trail', type: 'line', source: 'trail', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-width': W(2.6, 4.5, 16), 'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(255,178,62,0.2)', 0.6, 'rgba(255,178,62,0.9)', 1, '#FFE3A6'] } }, before);
-  map.addLayer({ id: 'ribbon', type: 'fill-extrusion', source: 'ribbon', minzoom: 14, paint: { 'fill-extrusion-color': '#FFC461', 'fill-extrusion-base': 1.2, 'fill-extrusion-height': 2.5, 'fill-extrusion-opacity': 0.95 } }, before);
   map.addLayer(make3DLayer());
 
   ZONES.forEach((z) => {
@@ -427,7 +464,7 @@ function fly(instant) {
   map.once('moveend', () => { if (tok !== S.flyTok) return; S.flying = false; syncCam(); });
 }
 function stepCam(dt) {
-  if (!S.ready || S.flying || performance.now() < S.holdUntil) return;
+  if (!S.ready || S.flying || S.pressed || performance.now() < S.holdUntil) return;
   const t = target();
   if (!t) return;
   const k = reduce ? 1 : 1 - Math.exp(-dt * 3.2);
@@ -464,7 +501,7 @@ function updateRouteData(force) {
   S.lastSrc = performance.now(); S.lastIdx = S.pt.i;
   map.getSource('trail').setData(lineFC(slice(route, 0, km)));
   map.getSource('rest').setData(lineFC(slice(route, km, route.km)));
-  map.getSource('ribbon').setData(fc(ribbon(slice(route, Math.max(0, km - 3), km), 2.6).map((r) => poly(r))));
+  S.ribCoords = slice(route, Math.max(0, km - 3), km); S.ribDirty = true;
 }
 
 /* ------------------------------------------------------------------ HUD --- */
@@ -591,7 +628,7 @@ function applyScreen(instant) {
   if (!S.ready) return;
   const vis = (id, on) => map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
   ['walls', 'wall-base'].forEach((id) => vis(id, s === 'laporan'));
-  ['rest-case', 'rest', 'trail-glow', 'trail', 'ribbon'].forEach((id) => vis(id, s !== 'laporan'));
+  ['rest-case', 'rest', 'trail-glow', 'trail'].forEach((id) => vis(id, s !== 'laporan'));
   map.setSky(s === 'laporan' ? SKY.dusk : SKY.day);
   updateRouteData(true);
   if (s === 'posisi' && S.cam === 'bebas') { S.cam = 'kejar'; setCam('kejar'); return; }

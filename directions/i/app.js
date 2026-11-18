@@ -132,7 +132,7 @@ function target(now) {
     return { center: T.ll, zoom: 11.2, pitch: clamp(58 + user.pitchOff, 30, 78), bearing: user.follow ? T.camHd - 22 : user.bearing, padding: padFor(236, 120) };
   }
   const tt = RM || !user.follow ? 0 : Math.sin(now / 1000 * 0.21) * 5;
-  return { center: [102.31, -0.25], zoom: 7.2 + Math.log2(LAYOUT.W / 390), pitch: clamp(62 + user.pitchOff, 20, 76), bearing: user.follow ? 38 + tt : user.bearing, padding: padFor(352, 210) };
+  return { center: [102.31, -0.25], zoom: 7.2 + Math.log2(LAYOUT.W / 390), pitch: clamp(62 + user.pitchOff, 20, 76), bearing: user.follow ? 38 + tt : user.bearing, padding: padFor(388, 210) };
 }
 
 /* ------------------------------------------------------------ style carte --- */
@@ -185,7 +185,7 @@ async function makeStyle() {
 }
 
 /* ------------------------------------------------------------ couches ------- */
-const ZCFG = { posisi: { pad: 900, col: 400, hk: 9, ring: 1180 }, riwayat: { pad: 2100, col: 950, hk: 22, ring: 2700 }, laporan: { pad: 0, col: 5200, hk: 30, ring: 0 } };
+const ZCFG = { posisi: { pad: 900, col: 400, hk: 9, ring: 1180 }, riwayat: { pad: 2100, col: 950, hk: 22, ring: 2700 }, laporan: { pad: 0, col: 5200, hk: 22, ring: 0 } };
 function zonesFC(m) {
   const c = ZCFG[m], f = [];
   for (const k in Z) {
@@ -321,20 +321,34 @@ function placeLabels() {
     if (show !== o.vis) { o.vis = show; o.el.classList.toggle('vis', show); }
   }
   /* anti-chevauchement : les plaquettes du fond montent sur une tige plus longue */
-  shown.sort((a, b) => b.y - a.y);
-  const placed = [];
   for (const o of shown) {
     if (!o.w) { o.w = o.card.offsetWidth; o.h = o.card.offsetHeight; }
-    let lift = 0, hit = true, guard = 0;
-    while (hit && guard++ < 12) {
-      hit = false;
-      const r = [o.x - o.w / 2 - 3, o.y - 17 - lift - o.h - 3, o.x + o.w / 2 + 3, o.y - 17 - lift];
-      for (const q of placed) if (r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]) { lift += r[3] - q[1] + 2; hit = true; break; }
+    const lf = o.x - o.w / 2, rt = o.x + o.w / 2;
+    o.dxv = Math.round(lf < 6 ? 6 - lf : rt > LAYOUT.W - 6 ? LAYOUT.W - 6 - rt : 0);
+  }
+  const lift = new Map();
+  if (mode === 'laporan' && shown.length) {
+    /* colonnes : deux rangées fixes, alternées de gauche à droite, tiges jusqu'au sommet */
+    const byX = shown.slice().sort((a, b) => a.x - b.x), RA = Math.min(...shown.map((o) => o.y)) - 20, hh = Math.max(...shown.map((o) => o.h)) + 8;
+    byX.forEach((o, i) => lift.set(o, Math.max(0, o.y - 17 - (RA - (i % 2) * hh))));
+  } else {
+    shown.sort((a, b) => b.y - a.y);
+    const placed = [];
+    for (const o of shown) {
+      const cx = o.x + o.dxv;
+      let l = 0, hit = true, guard = 0;
+      while (hit && guard++ < 12) {
+        hit = false;
+        const r = [cx - o.w / 2 - 3, o.y - 17 - l - o.h - 3, cx + o.w / 2 + 3, o.y - 17 - l];
+        for (const q of placed) if (r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]) { l += r[3] - q[1] + 2; hit = true; break; }
+      }
+      placed.push([cx - o.w / 2, o.y - 17 - l - o.h, cx + o.w / 2, o.y - 17 - l]);
+      lift.set(o, l);
     }
-    placed.push([o.x - o.w / 2, o.y - 17 - lift - o.h, o.x + o.w / 2, o.y - 17 - lift]);
-    const lf = o.x - o.w / 2, rt = o.x + o.w / 2, dx = Math.round(lf < 6 ? 6 - lf : rt > LAYOUT.W - 6 ? LAYOUT.W - 6 - rt : 0);
-    if (dx !== o.dx) { o.dx = dx; o.card.style.transform = dx ? `translateX(${dx}px)` : ''; }
-    const L = Math.round(lift);
+  }
+  for (const o of shown) {
+    if (o.dxv !== o.dx) { o.dx = o.dxv; o.card.style.transform = o.dx ? `translateX(${o.dx}px)` : ''; }
+    const L = Math.round(lift.get(o) || 0);
     if (L !== o.lift) { o.lift = L; o.el.style.setProperty('--lift', L + 'px'); }
   }
 }
