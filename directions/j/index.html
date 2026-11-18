@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0b0f12">
+<link rel="icon" href="data:,">
+<title>Muatku · J — Drone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&family=Saira+Condensed:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css">
+<style>
+:root{
+  --glass:rgba(12,16,20,.52);--glass2:rgba(10,13,17,.74);--line:rgba(255,255,255,.15);--line2:rgba(255,255,255,.08);
+  --ink:#F6F3EC;--ink2:rgba(246,243,236,.74);--ink3:rgba(246,243,236,.52);
+  --amber:#FFB23E;--amber2:#FFD893;--ice:#86DDFF;--slate:#AEB8C2;--live:#FF5A47;
+  --hud:'Saira Condensed',system-ui,sans-serif;--ui:'Albert Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;
+  --blur:blur(18px) saturate(1.4);--tabh:78px;--ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0b0f12;color:var(--ink);font-family:var(--ui);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+#app{position:relative;width:100%;height:100dvh;overflow:hidden;background:#d9dccf;isolation:isolate}
+@media (min-width:600px){
+  body{display:grid;place-items:center;background:radial-gradient(1200px 700px at 50% 30%,#1f2a31,#07090b)}
+  #app{width:390px;height:844px;border-radius:46px;box-shadow:0 0 0 10px #14181c,0 0 0 11px #2b3238,0 50px 140px rgba(0,0,0,.65)}
+}
+#map{position:absolute;inset:0;z-index:0}
+.maplibregl-ctrl-attrib,.maplibregl-ctrl-logo{display:none!important}
+.vignette{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(to bottom,rgba(6,10,14,.42),rgba(6,10,14,0) 20%,rgba(6,10,14,0) 58%,rgba(6,10,14,.48));transition:background .6s}
+#app[data-screen=laporan] .vignette{background:linear-gradient(to bottom,rgba(6,10,20,.55),rgba(6,10,20,.05) 34%,rgba(6,10,14,0) 55%,rgba(6,10,14,.5))}
+.frame{position:absolute;left:14px;right:14px;top:150px;bottom:340px;z-index:3;pointer-events:none;opacity:0;transition:opacity .5s}
+#app[data-screen=posisi] .frame{opacity:1}
+.frame i{position:absolute;width:20px;height:20px;border:0 solid rgba(255,255,255,.7);filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+.frame i:nth-child(1){top:0;left:0;border-top-width:1.5px;border-left-width:1.5px}
+.frame i:nth-child(2){top:0;right:0;border-top-width:1.5px;border-right-width:1.5px}
+.frame i:nth-child(3){bottom:0;left:0;border-bottom-width:1.5px;border-left-width:1.5px}
+.frame i:nth-child(4){bottom:0;right:0;border-bottom-width:1.5px;border-right-width:1.5px}
+.glass{background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:1px solid var(--line);box-shadow:0 12px 32px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.08)}
+.glass2{background:var(--glass2);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border:1px solid var(--line)}
+.lbl{font:600 11px/1 var(--hud);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+.num{font-family:var(--hud);font-variant-numeric:tabular-nums}
+
+/* screens */
+.screen{position:absolute;inset:0;z-index:5;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .45s var(--ease),visibility .45s}
+.screen>*{pointer-events:auto}
+.screen .pass{pointer-events:none}
+#app[data-screen=posisi] #s-posisi,#app[data-screen=riwayat] #s-riwayat,#app[data-screen=laporan] #s-laporan{opacity:1;visibility:visible}
+.screen .rise{transform:translateY(14px);opacity:0;transition:transform .6s var(--ease),opacity .6s var(--ease)}
+#app[data-screen=posisi] #s-posisi .rise,#app[data-screen=riwayat] #s-riwayat .rise,#app[data-screen=laporan] #s-laporan .rise{transform:none;opacity:1}
+.rise.d1{transition-delay:.06s}.rise.d2{transition-delay:.12s}.rise.d3{transition-delay:.18s}
+
+/* ---------- POSISI ---------- */
+.unit{position:absolute;top:calc(env(safe-area-inset-top) + 12px);left:12px;right:12px;border-radius:20px;padding:10px 12px 10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.u-name{display:flex;align-items:center;gap:8px;font:700 16px/1.1 var(--ui);letter-spacing:-.01em}
+.live{display:inline-flex;align-items:center;gap:5px;font:700 10px/1 var(--hud);letter-spacing:.16em;color:#fff;background:rgba(255,90,71,.22);border:1px solid rgba(255,90,71,.55);padding:3px 6px 3px 5px;border-radius:6px}
+.live i{width:6px;height:6px;border-radius:50%;background:var(--live);box-shadow:0 0 8px var(--live);animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.25}}
+.u-sub{margin-top:4px;font:500 12px/1.2 var(--ui);color:var(--ink2)}
+.eng{color:#9BE7A6;font-weight:600}.eng i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#58D26A;margin-right:4px;vertical-align:1px}
+.plate{font:700 15px/1 var(--hud);letter-spacing:.08em;background:#0b0d0f;color:#fff;border:1.5px solid rgba(255,255,255,.85);border-radius:5px;padding:6px 8px 5px;white-space:nowrap}
+.tape{position:absolute;top:calc(env(safe-area-inset-top) + 82px);left:50%;width:236px;margin-left:-118px;height:30px;overflow:hidden;pointer-events:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent)}
+.tape-in{position:absolute;top:0;left:0;height:100%;will-change:transform}
+.tape-in span{position:absolute;top:13px;transform:translateX(-50%);font:600 12px/1 var(--hud);color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);letter-spacing:.06em}
+.tape-in span.c{color:var(--amber2);font-weight:700}
+.tape-in i{position:absolute;top:2px;width:1px;height:6px;background:rgba(255,255,255,.75);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.tape-in i.b{height:10px;width:1.5px}
+.tape-mark{position:absolute;left:50%;top:0;width:0;height:0;margin-left:-5px;border:5px solid transparent;border-top:7px solid var(--amber)}
+.tape-dest{position:absolute;top:0;left:0;transform:translateX(-50%);font:700 9px/1 var(--hud);letter-spacing:.1em;color:#1b1203;background:var(--amber);border-radius:3px;padding:2px 4px;white-space:nowrap}
+.telemetry{position:absolute;top:calc(env(safe-area-inset-top) + 116px);left:0;right:0;text-align:center;font:500 10px/1 var(--mono);color:rgba(255,255,255,.88);text-shadow:0 1px 3px rgba(0,0,0,.75);letter-spacing:.02em;pointer-events:none}
+.cams{position:absolute;right:12px;top:calc(env(safe-area-inset-top) + 146px);display:flex;flex-direction:column;border-radius:18px;padding:4px;gap:2px}
+.cams button{width:56px;height:54px;border-radius:14px;display:grid;place-items:center;align-content:center;gap:3px;color:var(--ink2);transition:background .25s,color .25s}
+.cams svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.cams span{font:600 10.5px/1 var(--hud);letter-spacing:.1em;text-transform:uppercase}
+.cams button[aria-checked=true]{background:rgba(255,178,62,.95);color:#1d1304}
+.follow{position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 146px);border-radius:14px;padding:10px 12px;font:600 12px/1 var(--ui);display:none;align-items:center;gap:8px}
+.follow svg{width:16px;height:16px;fill:none;stroke:var(--amber);stroke-width:2}
+#app.free .follow{display:flex}
+.hud{position:absolute;left:12px;right:12px;bottom:calc(var(--tabh) + env(safe-area-inset-bottom) + 10px);display:grid;gap:8px}
+.hud-row{display:grid;grid-template-columns:118px 1fr;gap:8px}
+.speed{border-radius:20px;padding:10px 12px 10px;display:flex;flex-direction:column;justify-content:space-between}
+.speed b{font:700 62px/.82 var(--hud);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.speed .u{font:600 12px/1 var(--hud);letter-spacing:.12em;color:var(--ink2);text-transform:uppercase;margin-top:6px}
+.eta{border-radius:20px;display:grid;grid-template-columns:1fr 1fr}
+.eta>div{padding:11px 12px;display:flex;flex-direction:column;gap:6px}
+.eta>div+div{border-left:1px solid var(--line2)}
+.eta b{font:700 34px/.9 var(--hud);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.eta b em{font-style:normal;font-size:.62em;color:var(--ink2);margin-right:2px}
+.eta .s{font:500 12px/1 var(--ui);color:var(--ink2)}
+.dest{border-radius:20px;padding:12px 14px 12px;position:relative;overflow:hidden}
+.dest::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(var(--amber2),var(--amber));box-shadow:0 0 12px var(--amber)}
+.dest-top{display:flex;align-items:center;justify-content:space-between}
+.conf{display:inline-flex;align-items:center;gap:6px;font:600 11px/1 var(--ui);color:var(--amber2)}
+.conf i{display:inline-flex;gap:2px;align-items:flex-end}
+.conf i b{display:block;width:3px;background:var(--amber);border-radius:1px}
+.dest-name{margin-top:7px;font:700 24px/1 var(--hud);letter-spacing:.01em}
+.dest-meta{margin-top:8px;display:flex;justify-content:space-between;gap:10px;font:500 12px/1.25 var(--ui);color:var(--ink2)}
+.dest-meta b{color:var(--ink);font-weight:600}
+/* beacon label (projected from 3D) */
+.btag{position:absolute;left:0;top:0;z-index:4;pointer-events:none;transform:translate(-999px,-999px);display:none}
+.btag.on{display:block}
+.btag div{transform:translate(-50%,-100%);margin-top:-6px;white-space:nowrap;font:700 12px/1 var(--hud);letter-spacing:.08em;color:#1d1304;background:var(--amber);padding:5px 8px;border-radius:7px;box-shadow:0 0 18px rgba(255,178,62,.7)}
+.btag div span{font-weight:600;opacity:.75;margin-left:5px}
+/* zone markers */
+.zmk{display:flex;align-items:center;gap:6px;padding:4px 8px 4px 5px;border-radius:9px;background:rgba(10,13,17,.7);border:1px solid rgba(255,255,255,.2);color:#fff;font:600 11px/1 var(--ui);white-space:nowrap;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:opacity .4s}
+.zmk i{font:700 8.5px/1 var(--hud);letter-spacing:.12em;padding:3px 4px;border-radius:4px;background:var(--amber);color:#1d1304;font-style:normal}
+.zmk.b i{background:#fff;color:#111}
+#app.near .zmk{visibility:hidden}
+/* ---------- TABS ---------- */
+.tabs{position:absolute;left:0;right:0;bottom:0;z-index:8;height:calc(var(--tabh) + env(safe-area-inset-bottom));padding:8px 14px env(safe-area-inset-bottom);border-radius:24px 24px 0 0;border-bottom:0;display:flex;flex-direction:column}
+.tabs .row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:1}
+.tabs button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:14px;color:var(--ink3);font:600 11.5px/1 var(--hud);letter-spacing:.12em;text-transform:uppercase;transition:color .25s,background .25s}
+.tabs svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tabs button[aria-selected=true]{color:var(--amber);background:rgba(255,178,62,.1)}
+.attr{font:500 7.6px/1.3 var(--ui);color:rgba(246,243,236,.5);text-align:center;padding:3px 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---------- RIWAYAT ---------- */
+.rw-head{position:absolute;top:calc(env(safe-area-inset-top) + 12px);left:12px;right:12px;border-radius:20px;padding:8px 8px 10px}
+.rw-day{display:flex;align-items:center;justify-content:space-between;padding:0 2px 8px}
+.rw-day button{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.06)}
+.rw-day button svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2}
+.rw-day .t{text-align:center}
+.rw-day .t b{display:block;font:700 16px/1.1 var(--ui);margin-top:3px}
+.rw-day .t small{font:500 11.5px/1 var(--ui);color:var(--ink2)}
+.trips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;padding:0 2px}
+.trips::-webkit-scrollbar{display:none}
+.trip{flex:0 0 auto;min-width:118px;text-align:left;border-radius:13px;padding:7px 9px;background:rgba(255,255,255,.05);border:1px solid var(--line2)}
+.trip .tt{font:600 12.5px/1 var(--hud);letter-spacing:.04em;color:var(--ink2)}
+.trip .tr{font:600 12px/1.15 var(--ui);margin-top:4px;white-space:nowrap}
+.trip .tk{display:flex;align-items:center;gap:5px;margin-top:4px;font:500 11px/1 var(--ui);color:var(--ink2)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%}
+.dot.l{background:var(--amber);box-shadow:0 0 6px var(--amber)}.dot.k{background:var(--ice);box-shadow:0 0 6px var(--ice)}.dot.s{background:var(--slate)}
+.trip[aria-pressed=true]{background:rgba(255,178,62,.16);border-color:rgba(255,178,62,.75)}
+.rpchip{position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 152px);border-radius:14px;padding:8px 11px;display:flex;align-items:baseline;gap:10px}
+.rpchip .tm{font:700 22px/1 var(--hud);font-variant-numeric:tabular-nums}
+.rpchip .tm small{font-size:11px;color:var(--ink2);margin-left:3px;letter-spacing:.1em}
+.rpchip .v{font:600 13px/1 var(--hud);letter-spacing:.06em;color:var(--amber2);font-variant-numeric:tabular-nums}
+.rpchip .k{font:500 11.5px/1 var(--ui);color:var(--ink2);font-variant-numeric:tabular-nums}
+.sheet{position:absolute;left:0;right:0;bottom:calc(var(--tabh) + env(safe-area-inset-bottom) - 22px);border-radius:26px 26px 0 0;padding:8px 16px 34px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.sheet::-webkit-scrollbar{display:none}
+.grab{width:38px;height:4px;border-radius:2px;background:rgba(255,255,255,.28);margin:0 auto 10px}
+#rwSheet{top:446px}
+.tr-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tr-route{font:700 24px/1 var(--hud);letter-spacing:.01em}
+.tr-route span{color:var(--amber);margin:0 3px}
+.tr-when{margin-top:6px;font:500 13px/1 var(--ui);color:var(--ink2)}
+.state{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;font:600 11px/1 var(--hud);letter-spacing:.12em;text-transform:uppercase;padding:6px 8px;border-radius:8px;background:rgba(255,178,62,.14);color:var(--amber2);border:1px solid rgba(255,178,62,.4)}
+.state.k{background:rgba(134,221,255,.12);color:var(--ice);border-color:rgba(134,221,255,.4)}
+.scrub{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;margin-top:14px}
+.play{width:44px;height:44px;border-radius:50%;background:var(--amber);display:grid;place-items:center;box-shadow:0 0 0 4px rgba(255,178,62,.18),0 6px 18px rgba(255,178,62,.35)}
+.play svg{width:18px;height:18px;fill:#1d1304}
+.profile{position:relative;height:66px;touch-action:pan-y;cursor:ew-resize;user-select:none;-webkit-user-select:none}
+.profile svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ph{position:absolute;top:-4px;bottom:0;width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.8);pointer-events:none}
+.ph::after{content:"";position:absolute;left:50%;top:-5px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#fff;border:3px solid var(--amber)}
+.pf-tag{position:absolute;font:700 10.5px/1 var(--hud);letter-spacing:.06em;transform:translate(-50%,-100%);white-space:nowrap;pointer-events:none}
+.pf-tag.vmax{color:var(--amber2)}
+.pf-tag.stop{color:var(--ink2)}
+.axis{display:flex;justify-content:space-between;margin:6px 0 0 54px;font:500 10.5px/1 var(--mono);color:var(--ink3)}
+.tr-stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;border:1px solid var(--line2);border-radius:16px;overflow:hidden}
+.tr-stats>div{padding:10px 11px}
+.tr-stats>div+div{border-left:1px solid var(--line2)}
+.tr-stats b{display:block;font:700 26px/1 var(--hud);font-variant-numeric:tabular-nums}
+.tr-stats b small{font-size:12px;color:var(--ink2);margin-left:2px;letter-spacing:.06em}
+.tr-stats span{display:block;margin-top:4px;font:500 11px/1.2 var(--ui);color:var(--ink2)}
+.tr-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--line2)}
+.tr-row:first-of-type{margin-top:6px}
+.tr-row .k{font:500 12.5px/1.3 var(--ui);color:var(--ink2)}
+.tr-row .k b{display:block;color:var(--ink);font:600 14px/1.3 var(--ui)}
+.tr-row .v{text-align:right;font:700 19px/1 var(--hud);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tr-row .v small{display:block;font:500 11px/1.3 var(--ui);color:var(--ink2);margin-top:3px}
+.doid{font:700 14px/1 var(--hud);letter-spacing:.08em;padding:5px 7px;border-radius:6px;border:1px dashed rgba(255,255,255,.4)}
+/* ---------- LAPORAN ---------- */
+.lp-head{position:absolute;top:calc(env(safe-area-inset-top) + 16px);left:16px;right:16px;display:flex;justify-content:space-between;align-items:center}
+.lp-head b{font:600 13px/1 var(--ui);color:var(--ink)}
+.lp-head .pill{font:600 11px/1 var(--hud);letter-spacing:.12em;text-transform:uppercase;padding:6px 9px;border-radius:9px}
+.giant{position:absolute;top:calc(env(safe-area-inset-top) + 46px);left:0;right:0;text-align:center;pointer-events:none}
+.g-num{font:800 176px/.8 var(--hud);letter-spacing:-.035em;color:#fff;text-shadow:0 6px 40px rgba(0,0,0,.45);font-variant-numeric:tabular-nums}
+.g-num span{font-size:.42em;color:var(--ice);margin-left:4px;vertical-align:.95em;letter-spacing:0;text-shadow:0 0 24px rgba(134,221,255,.6)}
+.g-cap{margin-top:6px;font:700 15px/1 var(--hud);letter-spacing:.24em;text-transform:uppercase;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+.g-cap em{font-style:normal;color:var(--ice)}
+.g-sub{margin-top:7px;font:500 12.5px/1.3 var(--ui);color:rgba(255,255,255,.88);text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.legend{position:absolute;left:0;right:0;margin:0 auto;width:max-content;top:calc(env(safe-area-inset-top) + 236px);border-radius:12px;padding:7px 10px;display:flex;gap:10px;align-items:center;font:600 11px/1 var(--ui);white-space:nowrap}
+.legend i{display:inline-block;width:5px;height:13px;border-radius:2px;margin-right:5px;vertical-align:-2px}
+.legend small{color:var(--ink3);font-weight:500}
+#lpSheet{top:500px}
+.stbar{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px;margin:10px 0 4px}
+.stbar i{display:block;height:100%}
+.strow{display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2)}
+.strow .n{font:600 14px/1.15 var(--ui)}
+.strow .n small{display:block;font:500 11.5px/1.3 var(--ui);color:var(--ink2)}
+.strow .v{text-align:right;font:700 22px/1 var(--hud);font-variant-numeric:tabular-nums}
+.strow .v small{display:block;font:500 11.5px/1.2 var(--ui);color:var(--ink2);margin-top:2px}
+.strow.k .v{color:var(--ice)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.kpis>div{border-radius:14px;padding:10px;background:rgba(255,255,255,.05);border:1px solid var(--line2)}
+.kpis b{display:block;font:700 22px/1 var(--hud);font-variant-numeric:tabular-nums}
+.kpis span{display:block;margin-top:4px;font:500 11px/1.2 var(--ui);color:var(--ink2)}
+.kpis .w{border-color:rgba(255,178,62,.5);background:rgba(255,178,62,.1)}
+.kpis .w b{color:var(--amber2)}
+.kpis .wide{grid-column:span 2}
+/* fallback */
+.fallback{position:absolute;inset:0;z-index:1;background:radial-gradient(600px 500px at 50% 35%,#24323a,#0b0f12);display:grid;place-items:center}
+.fallback[hidden]{display:none}
+.fallback .fb{width:300px;text-align:center}
+.fallback svg{width:300px;height:300px}
+.fallback p{font:500 13px/1.4 var(--ui);color:var(--ink2);margin-top:8px}
+@media (prefers-reduced-motion:reduce){
+  .screen,.screen .rise,.vignette,.frame{transition:none!important}
+  .live i{animation:none}
+}
+</style>
+</head>
+<body>
+<div id="app" data-screen="posisi" class="near">
+  <div id="map" aria-label="Peta 3D posisi truk"></div>
+  <div class="fallback" id="fallback" hidden><div class="fb"><svg id="fbSvg" viewBox="0 0 300 300"></svg><div class="lbl">Mode 2D</div><p>WebGL tidak tersedia di perangkat ini — kamera drone 3D dinonaktifkan, rute ditampilkan datar.</p></div></div>
+  <div class="vignette"></div>
+  <div class="frame"><i></i><i></i><i></i><i></i></div>
+  <div class="btag" id="btag"><div id="btagTxt">PT RAPP<span>ETA ± 12:34</span></div></div>
+
+  <!-- ===================== POSISI ===================== -->
+  <section class="screen" id="s-posisi" aria-label="Posisi">
+    <header class="unit glass rise">
+      <div>
+        <div class="u-name"><span class="live"><i></i>LIVE</span>Dump Truck 01</div>
+        <div class="u-sub">Hino FM 260 JD · <span class="eng"><i></i>Mesin nyala</span></div>
+      </div>
+      <div class="plate">BM 8921 KU</div>
+    </header>
+    <div class="tape pass" aria-hidden="true"><div class="tape-in" id="tapeIn"></div><div class="tape-dest" id="tapeDest">◆ RAPP</div><div class="tape-mark"></div></div>
+    <div class="telemetry pass" id="telemetry">11:15:00 WIB</div>
+    <div class="cams glass rise d1" role="radiogroup" aria-label="Mode kamera">
+      <button data-cam="kejar" role="radio" aria-checked="true"><svg viewBox="0 0 24 24"><path d="M12 3.5l6.5 16-6.5-3.6-6.5 3.6z"/></svg><span>Kejar</span></button>
+      <button data-cam="atas" role="radio" aria-checked="false"><svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg><span>Atas</span></button>
+      <button data-cam="orbit" role="radio" aria-checked="false"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="9" ry="4.4"/><circle cx="12" cy="13" r="1.9"/><path d="M17.6 7.6l2.6.9-1.4 2.3"/></svg><span>Orbit</span></button>
+      <button data-cam="rute" role="radio" aria-checked="false"><svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18H13a3 3 0 0 0 0-6h-2a3 3 0 0 1 0-6h4.8"/></svg><span>Rute</span></button>
+    </div>
+    <button class="follow glass" id="follow"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" fill="#FFB23E"/></svg>Kejar truk lagi</button>
+    <div class="hud">
+      <div class="hud-row rise d1">
+        <div class="speed glass"><b id="spd">48</b><span class="u">km/jam</span></div>
+        <div class="eta glass">
+          <div><span class="lbl">ETA</span><b><em>±</em>12:34</b><span class="s">WIB</span></div>
+          <div><span class="lbl">Sisa</span><b id="kmLeft">63</b><span class="s">km lagi</span></div>
+        </div>
+      </div>
+      <div class="dest glass rise d2">
+        <div class="dest-top"><span class="lbl">Kemungkinan menuju</span><span class="conf"><i><b style="height:5px"></b><b style="height:8px"></b><b style="height:11px"></b></i>Keyakinan tinggi</span></div>
+        <div class="dest-name">PT RAPP — Power Station</div>
+        <div class="dest-meta"><span>Dari <b>Stockpile Batu Ampar</b> · 07:15</span><span>Hari ini <b>1 trip · 162 km</b></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== RIWAYAT ===================== -->
+  <section class="screen" id="s-riwayat" aria-label="Riwayat perjalanan">
+    <header class="rw-head glass rise">
+      <div class="rw-day">
+        <button aria-label="Hari sebelumnya"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="t"><small>Riwayat · 3 trip · 379 km</small><b>Selasa, 17 Nov 2026</b></div>
+        <button aria-label="Hari berikutnya"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+      <div class="trips" id="trips" role="list"></div>
+    </header>
+    <div class="rpchip glass rise d1" aria-live="off"><span class="tm" id="rpTime">09:13<small>WIB</small></span><span class="v" id="rpSpd">56 km/jam</span><span class="k" id="rpKm">km 92 / 207</span></div>
+    <div class="sheet glass2 rise d2" id="rwSheet">
+      <div class="grab"></div>
+      <div class="tr-top">
+        <div><div class="tr-route" id="trRoute">Batu Ampar<span>→</span>PT RAPP</div><div class="tr-when" id="trWhen">07:15 – 11:52 · 4 j 37 mnt</div></div>
+        <span class="state" id="trState"><span class="dot l"></span>Bermuatan</span>
+      </div>
+      <div class="scrub">
+        <button class="play" id="play" aria-label="Putar ulang penerbangan"><svg viewBox="0 0 24 24" id="playIco"><path d="M7 4.5v15l12.5-7.5z"/></svg></button>
+        <div class="profile" id="profile" role="slider" aria-label="Linimasa perjalanan" tabindex="0" aria-valuemin="0" aria-valuemax="100" aria-valuenow="42">
+          <svg viewBox="0 0 300 66" preserveAspectRatio="none" id="pfSvg"></svg>
+          <div id="pfTags"></div>
+          <div class="ph" id="ph"></div>
+        </div>
+      </div>
+      <div class="axis" id="axis"></div>
+      <div class="tr-stats" id="trStats"></div>
+      <div id="trMore"></div>
+    </div>
+  </section>
+
+  <!-- ===================== LAPORAN ===================== -->
+  <section class="screen" id="s-laporan" aria-label="Laporan 30 hari">
+    <div class="lp-head rise"><b>Laporan · 19 Okt – 17 Nov</b><span class="pill glass">30 hari</span></div>
+    <div class="giant pass rise d1">
+      <div class="g-num">44<span>%</span></div>
+      <div class="g-cap">km dijalani <em>kosong</em></div>
+      <div class="g-sub">2.778 km dari 6.296 km tanpa muatan</div>
+    </div>
+    <div class="legend glass rise d2"><span><i style="background:var(--amber)"></i>Bermuatan</span><span><i style="background:var(--ice)"></i>Kosong</span><small>tinggi = jumlah trip</small></div>
+    <div class="sheet glass2 rise d3" id="lpSheet">
+      <div class="grab"></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="lbl">3 status · 229 jam tercatat</span><span class="lbl" style="color:var(--ink2)">6.296 km</span></div>
+      <div class="stbar" aria-hidden="true"><i style="flex:69;background:var(--amber)"></i><i style="flex:63;background:var(--ice)"></i><i style="flex:97;background:var(--slate);opacity:.7"></i></div>
+      <div class="strow"><span class="dot l"></span><div class="n">Bermuatan<small>30 ritase</small></div><div class="v">3.025 km<small>69 j</small></div></div>
+      <div class="strow k"><span class="dot k"></span><div class="n">Kosong<small>44% dari total km</small></div><div class="v">2.778 km<small>63 j</small></div></div>
+      <div class="strow"><span class="dot s"></span><div class="n">Berhenti<small>79 j di zona · 17 j 30 mnt di jalan</small></div><div class="v">97 j<small>&nbsp;</small></div></div>
+      <div class="kpis">
+        <div><b>6.296</b><span>km total</span></div>
+        <div><b>67</b><span>trip</span></div>
+        <div><b>30</b><span>ritase</span></div>
+        <div class="w"><b>2</b><span>trip tanpa DO</span></div>
+        <div class="wide"><b>Rp 20,2 jt</b><span>biaya · ≈ Rp 3.200/km</span></div>
+      </div>
+    </div>
+  </section>
+
+  <nav class="tabs glass2" role="tablist" aria-label="Navigasi">
+    <div class="row">
+      <button role="tab" data-tab="posisi" aria-selected="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>Posisi</button>
+      <button role="tab" data-tab="riwayat" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.8-6.3"/><path d="M3.5 4.5v4h4"/><path d="M12 7.5V12l3 2"/></svg>Riwayat</button>
+      <button role="tab" data-tab="laporan" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 20v-8M12 20V5M19 20v-5"/><path d="M3 20.5h18"/></svg>Laporan</button>
+    </div>
+    <div class="attr">OpenFreeMap © OpenMapTiles · Data © OpenStreetMap contributors · Terrain: Mapzen / AWS Open Data</div>
+  </nav>
+</div>
+<script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
+<script src="routes.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
