@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f6f3ef">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<title>Muatku · Aliran — arus antar zona</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<script src="data.js"></script>
+<style>
+:root{--brand:#007879;--b50:#eaf9f7;--b400:#2aa69e;--b500:#0a8d89;--b600:#006d6e;--b700:#006264;--b800:#004f51;--tint:#d6f2ef;--surface:#fff;--canvas:#f6f3ef;--line:#e8e3dd;--fillc:#f3efea;--ink:#211b16;--ink2:#57504a;--ink3:#6b655f;--warn:#8f520c;--warnbg:#fbf0db;--empty:#85461b;--emptyi:#c0763e;--emptybg:#f7ebdf;--other:#b4aca3;
+--sh-card:0 1px 2px rgb(33 27 22/.05),0 4px 12px -6px rgb(33 27 22/.1);--sh-float:0 1px 2px rgb(33 27 22/.08),0 6px 18px -4px rgb(33 27 22/.18);--sh-sheet:0 -1px 0 rgb(33 27 22/.04),0 -12px 32px -6px rgb(33 27 22/.16);--ease:cubic-bezier(.22,1,.36,1);--ease-sheet:cubic-bezier(.32,.72,0,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--canvas)}
+body{font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+:focus-visible{outline:2.5px solid var(--brand);outline-offset:2px;border-radius:6px}
+.num,.n{font-variant-numeric:tabular-nums}
+.app{max-width:430px;margin:0 auto;padding:0 16px calc(28px + env(safe-area-inset-bottom))}
+/* header */
+.top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;margin:0 -16px;background:rgb(246 243 239/.88);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.mark{width:34px;height:34px;border-radius:11px;background:var(--brand);display:grid;place-items:center;flex:none;box-shadow:0 6px 14px -8px rgb(0 79 81/.7)}
+.ttl{flex:1;min-width:0}
+.ttl b{display:block;font-size:15.5px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.ttl b span{color:var(--ink3);font-weight:600}
+.ttl small{display:block;font-size:11.5px;color:var(--ink3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:flex;background:var(--fillc);border-radius:999px;padding:3px;flex:none;border:1px solid var(--line)}
+.seg button{font-size:12.5px;font-weight:700;color:var(--ink3);padding:0 11px;height:30px;border-radius:999px;transition:background .25s,color .25s,box-shadow .25s;white-space:nowrap}
+.seg button[aria-pressed=true]{background:#fff;color:var(--ink);box-shadow:var(--sh-card)}
+/* hero */
+.hero{background:var(--surface);border-radius:20px;padding:15px 16px 14px;box-shadow:var(--sh-card);margin-top:4px}
+.eyebrow{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--b700);min-height:22px}
+.eyebrow .clr{margin-left:auto;display:none;align-items:center;gap:5px;text-transform:none;letter-spacing:0;font-size:12px;color:var(--ink2);background:var(--fillc);border-radius:999px;padding:3px 10px 3px 9px;font-weight:600}
+.sel .eyebrow .clr{display:inline-flex}
+.hero h1{font-size:21px;line-height:1.3;font-weight:800;letter-spacing:-.015em;margin-top:6px;text-wrap:pretty}
+.hero h1 em{font-style:normal;color:var(--empty)}
+.hero h1 em.kl{color:var(--b700)}
+.fl{white-space:nowrap;background:var(--emptybg);color:var(--empty);padding:0 7px;border-radius:8px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.fl.zn{background:var(--fillc);color:var(--ink)}
+.hero p.sub{font-size:13.5px;color:var(--ink2);margin-top:7px;line-height:1.5;text-wrap:pretty}
+.hero p.sub b{color:var(--ink);font-weight:700}
+.split{display:flex;height:10px;border-radius:6px;overflow:hidden;gap:2px;margin-top:13px}
+.split i{display:block;height:100%;transition:flex-grow .6s var(--ease)}
+.split .sL{background:var(--b500)}.split .sE{background:var(--emptyi)}.split .sO{background:var(--other)}
+.splitlg{display:flex;justify-content:space-between;gap:6px;margin-top:8px;font-size:11.5px;color:var(--ink3);font-weight:500}
+.splitlg span{display:flex;flex-direction:column;line-height:1.25}
+.splitlg b{font-size:13px;color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+.splitlg span:nth-child(2){text-align:center}.splitlg span:nth-child(3){text-align:right}
+.splitlg .kE b{color:var(--empty)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:5px;vertical-align:0}
+/* cards */
+.card{background:#fff;border-radius:20px;box-shadow:var(--sh-card);margin-top:14px;padding:16px}
+.ch{display:flex;align-items:flex-start;gap:10px}
+.ch h2{font-size:15.5px;font-weight:800;letter-spacing:-.01em;line-height:1.25}
+.ch p{font-size:12.5px;color:var(--ink3);margin-top:2px}
+.ch>div{flex:1;min-width:0}
+.seg.sm button{height:28px;font-size:12px;padding:0 10px}
+.cols{display:flex;justify-content:space-between;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin:14px 0 2px}
+#sk{display:block;width:100%;height:auto;overflow:visible;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.lk{cursor:pointer;stroke:transparent;stroke-width:7;pointer-events:all;transition:opacity .35s,fill-opacity .25s}
+.lk.L{fill:var(--b500);fill-opacity:.5}.lk.E{fill:var(--emptyi);fill-opacity:.62}
+.lk.hot{fill-opacity:.82}
+.lk.dim{opacity:.09}
+.nd{fill:var(--ink2);transition:fill .3s,opacity .3s}.nd.on{fill:var(--ink)}.nd.dim{opacity:.28}
+.nh{fill:transparent;cursor:pointer}
+#sk :focus{outline:none}#sk .nh:focus-visible{stroke:var(--brand);stroke-width:2}#sk .lk:focus-visible{stroke:var(--b800);stroke-width:2}
+.sk-name{font-size:12px;font-weight:700;fill:var(--ink);transition:opacity .3s}
+.sk-val{font-size:11px;font-weight:600;fill:var(--ink3);font-variant-numeric:tabular-nums;transition:opacity .3s}
+.lbl.dim text{opacity:.32}.lbl.on .sk-name{fill:var(--b800)}
+.sk-grp{font-size:9px;font-weight:700;letter-spacing:.1em;fill:#a39b93}
+.pill{animation:pin .35s var(--ease) both;pointer-events:none}
+.pill rect{fill:#fff;stroke-width:1.2}.pill text{font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.pill.E rect{stroke:var(--emptyi)}.pill.E text{fill:var(--empty)}.pill.L rect{stroke:var(--b400)}.pill.L text{fill:var(--b700)}
+.pill.big rect{fill:var(--empty);stroke:none}.pill.big text{fill:#fff;font-size:11px}
+@keyframes pin{from{opacity:0;transform:translateY(3px)}}
+.lg{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12px;color:var(--ink2);margin-top:10px;font-weight:500}
+.sw{display:inline-block;width:18px;height:8px;border-radius:3px;margin-right:6px;vertical-align:0}
+.sw.L{background:var(--b500);opacity:.75}.sw.E{background:var(--emptyi);opacity:.85}
+.lg .tip{color:var(--ink3);margin-left:auto}
+.hint{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink3);margin-top:8px;padding-top:10px;border-top:1px dashed var(--line);line-height:1.4}
+.hint svg{flex:none}
+.offz{font-size:11.5px;color:var(--ink3);margin-top:6px}
+/* map */
+.mapcard{padding:0;overflow:hidden;position:relative}
+.mapcard .ch{padding:16px 16px 12px}
+.ibtn{width:36px;height:36px;border-radius:12px;background:var(--fillc);display:grid;place-items:center;flex:none;border:1px solid var(--line)}
+#mapwrap{position:relative}
+#map{height:330px;background:#e9e5df;z-index:0}
+.leaflet-container{font-family:inherit;background:#e9e5df}
+.leaflet-tile-pane{filter:grayscale(.6) contrast(.9) brightness(1.05)}
+.leaflet-control-attribution{font-size:9.5px}
+.leaflet-touch .leaflet-bar a{width:34px;height:34px;line-height:34px}
+.leaflet-touch .leaflet-bar{border:1px solid var(--line);box-shadow:var(--sh-float);border-radius:12px;overflow:hidden}
+.mlg{position:absolute;left:10px;top:10px;z-index:500;background:rgb(255 255 255/.94);border-radius:999px;padding:5px 11px;font-size:11px;font-weight:600;color:var(--ink2);box-shadow:var(--sh-float);display:flex;gap:10px;pointer-events:none}
+.mlg .sw{margin-right:5px}
+.alb{background:none;border:0}
+.alb span{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;background:#fff;border-radius:7px;padding:1px 6px;border:1.2px solid;box-shadow:var(--sh-card);transition:opacity .3s}
+.alb.E span{color:var(--empty);border-color:var(--emptyi)}.alb.L span{color:var(--b700);border-color:var(--b400)}
+.mlg span{display:flex;align-items:center}
+.mlg .sw{width:16px;height:4px;border-radius:2px}.mlg .sw.R{background:#8b827a;opacity:.55;height:2px}
+.fsx{position:absolute;left:12px;top:calc(12px + env(safe-area-inset-top));z-index:600;display:none;align-items:center;gap:6px;background:#fff;border-radius:999px;height:40px;padding:0 15px 0 12px;font-weight:700;font-size:13px;box-shadow:var(--sh-float)}
+.mapcard.solo{position:fixed;inset:0;z-index:70;border-radius:0;margin:0;max-width:none}
+.mapcard.solo .ch{display:none}
+.mapcard.solo #map{height:100vh;height:100dvh}
+.mapcard.solo .fsx{display:inline-flex}
+.mapcard.solo .mlg{top:auto;bottom:calc(14px + env(safe-area-inset-bottom))}
+.zmk{background:none;border:0}
+.zm{position:absolute;left:-9px;top:-9px;display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;transition:opacity .3s}
+.zm.l{left:auto;right:-9px;flex-direction:row-reverse}
+.zm .d{width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid var(--ink2);box-shadow:var(--sh-float);flex:none}
+.zm.muat .d{border-color:var(--brand)}
+.zm .t{background:rgb(255 255 255/.95);border-radius:9px;padding:3px 8px 3px 7px;box-shadow:var(--sh-float);font-size:11.5px;font-weight:700;line-height:1.2}
+.zm .t small{display:block;font-size:9.5px;font-weight:600;color:var(--ink3);letter-spacing:.04em;text-transform:uppercase}
+.zm.on .t{background:var(--ink);color:#fff}.zm.on .t small{color:#d8d2cc}
+.zm.dim{opacity:.38}
+.arw{background:none;border:0}
+.arw i{position:absolute;left:-5.5px;top:-6px;width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:11px solid;transform-origin:5.5px 6px;transition:opacity .3s}
+.arc{transition:opacity .35s,stroke-opacity .35s}
+/* opportunities */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--warn);background:var(--warnbg);border-radius:999px;padding:3px 8px;flex:none}
+.opsum{font-size:13px;color:var(--ink2);margin-top:10px;line-height:1.5}
+.opsum b{color:var(--ink)}
+.op{border:1px solid var(--line);border-radius:16px;padding:13px 13px 12px;margin-top:12px;transition:border-color .3s,opacity .3s}
+.op.dim{opacity:.45}
+.op header{display:flex;gap:10px;align-items:flex-start}
+.rk{width:24px;height:24px;border-radius:8px;background:var(--emptybg);color:var(--empty);font-weight:800;font-size:12.5px;display:grid;place-items:center;flex:none;margin-top:1px}
+.op h3{font-size:14.5px;font-weight:800;letter-spacing:-.005em;line-height:1.3}
+.op header p{font-size:12.5px;color:var(--ink3);margin-top:1px}
+.op header p b{color:var(--empty);font-weight:700}
+.opbar{height:6px;border-radius:4px;background:var(--fillc);margin:10px 0 2px;overflow:hidden}
+.opbar i{display:block;height:100%;background:var(--emptyi);border-radius:4px;transition:width .6s var(--ease)}
+.opt{list-style:none;display:flex;gap:9px;padding:9px 0 0;font-size:13px;line-height:1.45;color:var(--ink2)}
+.opt+.opt{border-top:1px dashed var(--line);margin-top:9px}
+.opt .ic{width:22px;height:22px;border-radius:7px;background:var(--b50);color:var(--b700);display:grid;place-items:center;flex:none;font-size:11px;font-weight:800;margin-top:1px}
+.opt strong{color:var(--b700);font-weight:800;white-space:nowrap}
+.opt b{color:var(--ink);font-weight:700}
+.opt .dl{display:inline-block;margin-top:3px;font-size:12px;font-weight:700;color:var(--ink);background:var(--fillc);border-radius:7px;padding:1px 7px}
+.opt.na{color:var(--ink3);font-size:12.5px}
+.op footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:11px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--ink3)}
+.op footer b{color:var(--ink2)}
+.lnk{font-size:12.5px;font-weight:700;color:var(--b700);white-space:nowrap;padding:6px 2px;min-height:32px}
+.asm{font-size:11.5px;color:var(--ink3);margin-top:12px;line-height:1.5}
+/* di aplikasi */
+.inapp{display:flex;gap:12px;align-items:flex-start;background:var(--b50);border:1px solid var(--tint);border-radius:20px;padding:14px 15px;margin-top:14px;font-size:13px;color:var(--ink2);line-height:1.5}
+.inapp b{color:var(--b800)}
+.inapp .ic{width:32px;height:32px;border-radius:10px;background:#fff;display:grid;place-items:center;flex:none;box-shadow:var(--sh-card)}
+.foot{font-size:11.5px;color:var(--ink3);margin:16px 4px 0;line-height:1.55}
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgb(33 27 22/.34);opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;z-index:80}
+.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:430px;max-height:78vh;max-height:78dvh;background:#fff;border-radius:28px 28px 0 0;box-shadow:var(--sh-sheet);z-index:81;transform:translateY(105%);transition:transform .45s var(--ease-sheet);display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom);visibility:hidden}
+body.open .scrim{opacity:1;visibility:visible}body.open .sheet{transform:none;visibility:visible}
+body.open{overflow:hidden}
+.grab{display:block;width:44px;height:5px;border-radius:5px;background:#d9d2ca;margin:10px auto 2px;position:relative;touch-action:none}
+.grab::before{content:"";position:absolute;inset:-12px -90px -10px}
+.sh-h{display:flex;gap:10px;align-items:flex-start;padding:10px 18px 12px;border-bottom:1px solid var(--line)}
+.sh-h>div{flex:1;min-width:0}
+.kind{display:inline-flex;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:3px 8px}
+.kind.E{background:var(--emptybg);color:var(--empty)}.kind.L{background:var(--tint);color:var(--b800)}
+.sh-h h3{font-size:18px;font-weight:800;letter-spacing:-.01em;margin-top:5px;line-height:1.25}
+.sh-h p{font-size:12.5px;color:var(--ink3);margin-top:3px}
+.sh-h p b{color:var(--ink);font-weight:700}
+.xb{width:36px;height:36px;border-radius:50%;background:var(--fillc);display:grid;place-items:center;flex:none}
+.trips{list-style:none;overflow:auto;padding:4px 18px 18px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.trips li{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.trips li:last-child{border-bottom:0}
+.trips .dd{width:42px;flex:none;text-align:center;border-radius:11px;background:var(--fillc);padding:4px 0;line-height:1.1}
+.trips .dd small{display:block;font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em}
+.trips .dd b{font-size:15px;font-weight:800}
+.trips .mid{flex:1;min-width:0}
+.trips .mid b{display:block;font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.trips .mid span{font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums}
+.trips .rt{text-align:right}
+.trips .rt b{display:block;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+.tg{display:inline-block;font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;margin-top:2px;white-space:nowrap}
+.tg.do{background:var(--tint);color:var(--b800)}.tg.no{background:var(--warnbg);color:var(--warn)}.tg.e{background:var(--emptybg);color:var(--empty)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media (min-width:600px){body{padding:20px 0}.app{box-shadow:0 0 0 1px var(--line);border-radius:28px;background:var(--canvas)}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div class="mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5c6 0 8 10 14 10" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><path d="M3 15c6 0 8-10 14-10" stroke="#9fe0d9" stroke-width="2.6" stroke-linecap="round" opacity=".9"/></svg></div>
+    <div class="ttl"><b>Muatku <span>· Aliran</span></b><small>Dump Truck 01 · BM 8921 KU</small></div>
+    <div class="seg" role="group" aria-label="Periode"><button data-p="7" aria-pressed="false">7 hari</button><button data-p="30" aria-pressed="true">30 hari</button></div>
+  </header>
+
+  <section class="hero" id="hero" aria-live="polite">
+    <div class="eyebrow"><span id="eb">Kesimpulan · 30 hari</span><button class="clr" id="clr" aria-label="Tampilkan semua zona"><span id="clrz">Semua zona</span> <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 2l6 6M8 2L2 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+    <h1 id="h1"></h1>
+    <p class="sub" id="sub"></p>
+    <div class="split" id="split" aria-hidden="true"><i class="sL"></i><i class="sE"></i><i class="sO"></i></div>
+    <div class="splitlg" id="splitlg"></div>
+  </section>
+
+  <section class="card" aria-labelledby="skt">
+    <div class="ch"><div><h2 id="skt">Arus antar zona</h2><p id="skp">Dari mana km datang, ke mana perginya</p></div>
+      <div class="seg sm" role="group" aria-label="Tebal arus"><button data-m="km" aria-pressed="true">km</button><button data-m="n" aria-pressed="false">Perjalanan</button></div></div>
+    <div class="cols"><span>Berangkat dari</span><span>Tiba di</span></div>
+    <svg id="sk" viewBox="0 0 330 372" role="img" aria-label="Diagram arus antar zona">
+      <defs><clipPath id="skclip"><rect id="skcr" x="0" y="-10" width="330" height="400"/></clipPath></defs>
+      <g id="sk-grp"></g><g id="sk-links" clip-path="url(#skclip)"></g><g id="sk-nodes"></g><g id="sk-lbl"></g><g id="sk-notes"></g>
+    </svg>
+    <div class="lg"><span><i class="sw L"></i>Bermuatan</span><span><i class="sw E"></i>Kosong</span><span class="tip" id="tip">tebal = km</span></div>
+    <div class="hint"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M7 9.5V4.2a1.4 1.4 0 012.8 0v4.3l3.3.6c.9.2 1.4 1 1.3 1.9l-.6 3.6a2 2 0 01-2 1.7H8.6a2 2 0 01-1.6-.8L4.6 12.3a1.3 1.3 0 011.9-1.8L7 11" stroke="#6b655f" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Ketuk <b>zona</b> untuk memisahkan arusnya, ketuk <b>arus</b> untuk melihat perjalanannya.</span></div>
+    <p class="offz" id="offz"></p>
+  </section>
+
+  <section class="card mapcard" id="mapcard" aria-labelledby="mpt">
+    <div class="ch"><div><h2 id="mpt">Peta arus</h2><p id="mpp">Arus yang sama di jalan sebenarnya</p></div>
+      <button class="ibtn" id="fs" aria-label="Peta layar penuh"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" stroke="#211b16" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+    <div id="mapwrap">
+      <div id="map" aria-label="Peta arus antar zona"></div>
+      <div class="mlg" aria-hidden="true"><span><i class="sw L"></i>Bermuatan</span><span><i class="sw E"></i>Kosong</span><span><i class="sw R"></i>Jalan</span></div>
+      <button class="fsx" id="fsx" aria-label="Keluar dari peta penuh"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4" stroke="#211b16" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Keluar</button>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="opt">
+    <div class="ch"><div><h2 id="opt">Peluang muatan balik</h2><p>Arus kosong terbesar, dan berapa km bisa dibayar</p></div><span class="badge">Perkiraan</span></div>
+    <p class="opsum" id="opsum"></p>
+    <div id="ops"></div>
+    <p class="asm">Perkiraan: jarak dari jalur jalan sebenarnya, biaya rata-rata <b>Rp 3.200/km</b> (Laporan 30 hari). Tarif muatan balik belum diketahui — ini batas atas km yang bisa dibayar, bukan janji pendapatan.</p>
+  </section>
+
+  <aside class="inapp"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="3.5" stroke="#006264" stroke-width="1.6"/><path d="M5 10.5c2 0 2.5-5 6-5" stroke="#006264" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+    <p><b>Di aplikasi:</b> tab <b>Laporan</b> → kartu « Arus zona » di bawah ringkasan 30 hari · di <b>Posisi</b>, ketuk sebuah zona → lembar zona dengan arus masuk/keluarnya.</p></aside>
+
+  <p class="foot">Data simulasi deterministik, 19 Okt – 17 Nov 2026, cocok dengan total Laporan (6.296 km · 67 perjalanan · 30 ritase · 44% kosong). Perjalanan hari ini (Batu Ampar → PT RAPP, sejak 07:15) belum dihitung. Jalur: OSRM, peta © OpenStreetMap.</p>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t">
+  <span class="grab" id="grab" aria-hidden="true"></span>
+  <div class="sh-h"><div><span class="kind" id="sh-k"></span><h3 id="sh-t"></h3><p id="sh-p"></p></div>
+    <button class="xb" id="sh-x" aria-label="Tutup"><svg width="12" height="12" viewBox="0 0 10 10"><path d="M2 2l6 6M8 2L2 8" stroke="#211b16" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+  <ol class="trips" id="sh-l"></ol>
+</div>
+
+<script>
+(() => {
+const D = window.ALIRAN;
+const $ = s => document.querySelector(s);
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const Z = {
+  BA: { name: 'Batu Ampar', full: 'Stockpile Batu Ampar', type: 'muat', at: [-0.95892, 102.7328] },
+  S2: { name: 'Stockpile 2', full: 'Stockpile 2', type: 'muat', at: [-0.399765, 102.24992] },
+  RAPP: { name: 'PT RAPP', full: 'PT RAPP — Power Station', type: 'bongkar', at: [0.43954, 101.89258] },
+  PEL: { name: 'Pelabuhan', full: 'Pelabuhan Bongkar', type: 'bongkar', at: [-0.375031, 102.54796] },
+  PB: { name: 'Pabrik B', full: 'Pabrik B', type: 'bongkar', at: [0.009337, 102.264616] },
+};
+const ORDER = ['BA', 'S2', 'RAPP', 'PEL', 'PB'];
+const ROADKM = { 'BA-S2': 122, 'BA-PEL': 104, 'BA-PB': 163, 'S2-RAPP': 125, 'S2-PEL': 45, 'S2-PB': 63, 'RAPP-PEL': 148, 'RAPP-PB': 89, 'PEL-PB': 86, 'BA-RAPP': 208 };
+const rk = (a, b) => ROADKM[a + '-' + b] ?? ROADKM[b + '-' + a];
+const COST = 3200;
+const state = { period: 30, metric: 'km', zone: null };
+const nf = new Intl.NumberFormat('id-ID');
+const fmt = v => nf.format(Math.round(v));
+const pct = v => Math.round(v * 100);
+const rp = v => 'Rp ' + (v / 1e6).toFixed(1).replace('.', ',') + ' jt';
+const dur = m => { const h = Math.floor(m / 60), mm = Math.round(m % 60); return h ? `${h} j ${mm} mnt` : `${mm} mnt`; };
+const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'], MON = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const dparts = s => { const d = new Date(s + 'T00:00:00Z'); return { w: DAYS[d.getUTCDay()], d: d.getUTCDate(), m: MON[d.getUTCMonth()] }; };
+const val = f => state.metric === 'km' ? f.km : f.n;
+const vtxt = (v, m = state.metric) => m === 'km' ? fmt(v) + ' km' : v + '×';
+const arrow = (a, b) => `${Z[a].name} → ${Z[b].name}`;
+
+/* ---------------------------------------------------------------- data */
+function compute() {
+  const from = state.period === 7 ? '2026-11-11' : '2026-10-19';
+  const ts = D.trips.filter(t => t.d >= from);
+  const fm = new Map(); let L = 0, E = 0, O = 0, nL = 0, nE = 0, nO = 0;
+  ts.forEach(t => {
+    if (t.k === 'O') { O += t.km; nO++; return; }
+    if (t.k === 'L') { L += t.km; nL++; } else { E += t.km; nE++; }
+    const key = t.a + '>' + t.b; let f = fm.get(key);
+    if (!f) fm.set(key, f = { key, a: t.a, b: t.b, k: t.k, n: 0, km: 0, min: 0, trips: [] });
+    f.n++; f.km += t.km; f.min += t.min; f.trips.push(t);
+  });
+  const flows = [...fm.values()];
+  return { ts, flows, L, E, O, T: L + E + O, nL, nE, nO, empties: flows.filter(f => f.k === 'E').sort((a, b) => b.km - a.km) };
+}
+let data;
+const related = f => !state.zone || f.a === state.zone || f.b === state.zone;
+
+/* ---------------------------------------------------------------- headline */
+function renderHero() {
+  const d = data, z = state.zone, per = state.period + ' hari';
+  $('#eb').textContent = z ? `Zona ${Z[z].name} · ${per}` : `Kesimpulan · ${per}`;
+  $('#hero').classList.toggle('sel', !!z);
+  let h, s;
+  if (!z) {
+    const top = d.empties[0], share = pct(top.km / d.E);
+    const outs = d.flows.filter(f => f.a === top.a), nOut = outs.reduce((a, f) => a + f.n, 0);
+    const toB = d.empties.filter(f => f.b === top.b).reduce((a, f) => a + f.km, 0);
+    h = `<em>${share}%</em> km kosong datang dari satu arus: <span class="fl">${arrow(top.a, top.b)}</span>`;
+    s = (nOut === top.n ? `Setiap kali dari ${Z[top.a].name}, truk pulang tanpa muatan — <b>${top.n}×, ${fmt(top.km)} km</b>.` : `${top.n} dari ${nOut} perjalanan dari ${Z[top.a].name} pulang kosong (<b>${fmt(top.km)} km</b>).`)
+      + ` Semua arus kosong ke ${Z[top.b].name}: <b>${pct(toB / d.E)}%</b> km kosong.`;
+  } else if (Z[z].type === 'bongkar') {
+    const outs = d.flows.filter(f => f.a === z), nOut = outs.reduce((a, f) => a + f.n, 0), nOutE = outs.filter(f => f.k === 'E').reduce((a, f) => a + f.n, 0);
+    const outE = outs.filter(f => f.k === 'E').reduce((a, f) => a + f.km, 0), inL = d.flows.filter(f => f.b === z && f.k === 'L').reduce((a, f) => a + f.km, 0);
+    if (!nOut) { h = `Belum ada perjalanan keluar dari <span class="fl zn">${Z[z].name}</span> dalam ${per}`; s = `Masuk bermuatan <b>${fmt(inL)} km</b>.`; }
+    else {
+      h = `<em>${nOutE === nOut ? 'Semua ' + nOut : nOutE + ' dari ' + nOut}</em> perjalanan dari <span class="fl zn">${Z[z].name}</span> keluar kosong`;
+      const dest = outs.sort((a, b) => b.km - a.km).map(f => `${Z[f.b].name} ${pct(f.km / outE)}%`).join(', ');
+      s = `Masuk bermuatan <b>${fmt(inL)} km</b>, keluar kosong <b>${fmt(outE)} km</b> (${dest}). Muatan balik dari sini = hingga ${fmt(outE)} km dibayar.`;
+    }
+  } else {
+    const inE = d.flows.filter(f => f.b === z && f.k === 'E'), inEkm = inE.reduce((a, f) => a + f.km, 0);
+    const outL = d.flows.filter(f => f.a === z && f.k === 'L').reduce((a, f) => a + f.km, 0);
+    h = `Untuk muat di <span class="fl zn">${Z[z].name}</span>, truk datang kosong <em>${fmt(inEkm)} km</em>`;
+    const src = inE.sort((a, b) => b.km - a.km).map(f => `${Z[f.a].name} ${pct(f.km / inEkm)}%`).join(', ');
+    s = outL ? `Keluar bermuatan <b>${fmt(outL)} km</b> → tiap 1 km bermuatan butuh <b>${(inEkm / outL).toFixed(1).replace('.', ',')} km</b> kosong untuk datang. Asal: ${src}.` : `Asal: ${src}.`;
+  }
+  $('#h1').innerHTML = h; $('#sub').innerHTML = s;
+  const sp = $('#split').children; [d.L, d.E, d.O].forEach((v, i) => sp[i].style.flexGrow = v);
+  $('#splitlg').innerHTML = `<span><span><i class="dot" style="background:var(--b500)"></i>Bermuatan</span><b>${fmt(d.L)} km</b></span><span class="kE"><span><i class="dot" style="background:var(--emptyi)"></i>Kosong ${pct(d.E / d.T)}%</span><b>${fmt(d.E)} km</b></span><span><span><i class="dot" style="background:var(--other)"></i>Luar zona</span><b>${fmt(d.O)} km</b></span>`;
+  $('#offz').textContent = d.nO ? `+ ${d.nO} perjalanan di luar zona (SPBU, bengkel, pool) · ${fmt(d.O)} km — tidak digambar.` : '';
+  $('#tip').textContent = state.metric === 'km' ? 'tebal = km' : 'tebal = jumlah perjalanan';
+}
+
+/* ---------------------------------------------------------------- sankey */
+const SW = 330, SH = 372, BAR = 8, X0 = 80, X1 = SW - 80, PADT = 20, GAP = 9, GG = 36;
+const NS = 'http://www.w3.org/2000/svg';
+const mk = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.appendChild(e); return e; };
+const els = { links: new Map(), nodes: new Map(), lbls: new Map(), hits: new Map() };
+let first = true, anim;
+function layout() {
+  const lv = {}, rv = {}; ORDER.forEach(z => lv[z] = rv[z] = 0);
+  data.flows.forEach(f => { lv[f.a] += val(f); rv[f.b] += val(f); });
+  const total = Object.values(lv).reduce((a, b) => a + b, 0);
+  const k = (SH - PADT - 6 - GAP * 3 - GG - 12) / total;
+  const col = vals => { const p = {}; let y = PADT; ORDER.forEach((z, i) => { if (i === 2) y += GG - GAP; const h = vals[z] > 0 ? Math.max(3, vals[z] * k) : 0; p[z] = { y0: y, h, v: vals[z] }; y += h + (vals[z] > 0 ? GAP : 0); }); return p; };
+  const lp = col(lv), rp = col(rv), idx = z => ORDER.indexOf(z);
+  const links = data.flows.map(f => ({ f, w: Math.max(1, val(f) * k) }));
+  ORDER.forEach(z => {
+    let y = lp[z].y0; links.filter(l => l.f.a === z).sort((p, q) => idx(p.f.b) - idx(q.f.b)).forEach(l => { l.sy0 = y; l.sy1 = y + l.w; y += l.w; });
+    let y2 = rp[z].y0; links.filter(l => l.f.b === z).sort((p, q) => idx(p.f.a) - idx(q.f.a)).forEach(l => { l.ty0 = y2; l.ty1 = y2 + l.w; y2 += l.w; });
+  });
+  return { lp, rp, links };
+}
+function relax(items, sep, lo, hi) {
+  items.sort((a, b) => a.c - b.c); let prev = -1e9;
+  items.forEach(it => { it.y = Math.max(it.c, prev + sep, lo); prev = it.y; });
+  const last = items[items.length - 1]; let over = last ? last.y - hi : 0;
+  for (let i = items.length - 1; i >= 0 && over > 0; i--) { items[i].y -= over; over = i ? Math.max(0, sep - (items[i].y - items[i - 1].y)) : 0; }
+}
+const xa = X0 + BAR, xb = X1 - BAR, xm = (xa + xb) / 2;
+const ribbon = g => `M${xa},${g.sy0}C${xm},${g.sy0} ${xm},${g.ty0} ${xb},${g.ty0}L${xb},${g.ty1}C${xm},${g.ty1} ${xm},${g.sy1} ${xa},${g.sy1}Z`;
+const collapse = g => { const s = (g.sy0 + g.sy1) / 2, t = (g.ty0 + g.ty1) / 2; return { sy0: s, sy1: s, ty0: t, ty1: t }; };
+function tween(items, dur, end) {
+  cancelAnimationFrame(anim);
+  if (RM || !dur) { items.forEach(it => it.apply(it.to)); end && end(); return; }
+  const t0 = performance.now();
+  const step = now => { const p = Math.max(0, Math.min(1, (now - t0) / dur)), e = 1 - Math.pow(1 - p, 4);
+    items.forEach(it => { const o = {}; for (const k in it.to) o[k] = it.from[k] + (it.to[k] - it.from[k]) * e; it.apply(o); });
+    if (p < 1) anim = requestAnimationFrame(step); else end && end(); };
+  anim = requestAnimationFrame(step);
+}
+function renderSankey() {
+  const lay = layout(), items = [], gL = $('#sk-links'), gN = $('#sk-nodes'), gT = $('#sk-lbl'), z = state.zone;
+  $('#sk-notes').innerHTML = '';
+  // group captions
+  const gg = $('#sk-grp'); gg.innerHTML = '';
+  [['MUAT', PADT - 8], ['BONGKAR', Math.min(lay.lp.RAPP.y0, lay.rp.RAPP.y0) - 9]].forEach(([t, y]) => {
+    mk('text', { x: X0 + BAR / 2, y, 'text-anchor': 'middle', class: 'sk-grp' }, gg).textContent = t;
+    mk('text', { x: X1 - BAR / 2, y, 'text-anchor': 'middle', class: 'sk-grp' }, gg).textContent = t;
+  });
+  const seen = new Set(), topE = data.empties[0];
+  const ordered = [...lay.links].sort((p, q) => (related(p.f) - related(q.f)) || (val(p.f) - val(q.f)));
+  ordered.forEach(l => {
+    const key = l.f.key; seen.add(key); let el = els.links.get(key);
+    const to = { sy0: l.sy0, sy1: l.sy1, ty0: l.ty0, ty1: l.ty1 };
+    if (!el) { el = mk('path', { tabindex: 0, role: 'button' }); el._g = collapse(to); els.links.set(key, el); }
+    gL.appendChild(el); // z-order : related on top
+    el.dataset.key = key;
+    el.setAttribute('class', `lk ${l.f.k}${related(l.f) ? '' : ' dim'}${(z ? related(l.f) : topE && key === topE.key) ? ' hot' : ''}`);
+    el.setAttribute('aria-label', `${arrow(l.f.a, l.f.b)}, ${l.f.k === 'L' ? 'bermuatan' : 'kosong'}, ${l.f.n} perjalanan, ${fmt(l.f.km)} km`);
+    items.push({ from: { ...el._g }, to, apply: g => { el._g = g; el.setAttribute('d', ribbon(g)); } });
+  });
+  els.links.forEach((el, key) => { if (!seen.has(key)) { const to = collapse(el._g); items.push({ from: { ...el._g }, to, apply: g => { el._g = g; el.setAttribute('d', ribbon(g)); } }); el.dataset.gone = 1; } else delete el.dataset.gone; });
+  const lblItems = { L: [], R: [] };
+  ['L', 'R'].forEach(side => ORDER.forEach(zz => {
+    const p = (side === 'L' ? lay.lp : lay.rp)[zz], key = side + zz;
+    let r = els.nodes.get(key);
+    if (!r) { r = mk('rect', { x: side === 'L' ? X0 : X1 - BAR, width: BAR, rx: 2.5 }, gN); r._g = { y: p.y0 + p.h / 2, h: 0 }; els.nodes.set(key, r); }
+    const linked = !z || zz === z || data.flows.some(f => (f.a === z && f.b === zz && side === 'R') || (f.b === z && f.a === zz && side === 'L'));
+    r.setAttribute('class', `nd${zz === z ? ' on' : ''}${linked ? '' : ' dim'}`);
+    items.push({ from: { ...r._g }, to: { y: p.y0, h: p.h }, apply: g => { r._g = g; r.setAttribute('y', g.y); r.setAttribute('height', Math.max(0, g.h)); } });
+    let t = els.lbls.get(key);
+    if (!t) { t = mk('g', { class: 'lbl' }, gT); const ax = side === 'L' ? X0 - 6 : X1 + 6, an = side === 'L' ? 'end' : 'start';
+      mk('text', { x: ax, y: -1, 'text-anchor': an, class: 'sk-name' }, t).textContent = Z[zz].name; t._v = mk('text', { x: ax, y: 12, 'text-anchor': an, class: 'sk-val' }, t); t._g = { y: p.y0 + p.h / 2 }; els.lbls.set(key, t); }
+    t._v.textContent = p.v ? vtxt(p.v) : '';
+    t.style.opacity = p.v ? 1 : 0;
+    t.setAttribute('class', `lbl${zz === z ? ' on' : ''}${linked ? '' : ' dim'}`);
+    lblItems[side].push({ key, t, c: p.y0 + p.h / 2, p });
+  }));
+  ['L', 'R'].forEach(side => { relax(lblItems[side].filter(i => i.p.v), 28, 12, SH - 14); lblItems[side].forEach(i => {
+    const to = { y: i.y ?? i.c }; items.push({ from: { ...i.t._g }, to, apply: g => { i.t._g = g; i.t.setAttribute('transform', `translate(0 ${g.y})`); } });
+    let h = els.hits.get(i.key); if (!h) { h = mk('rect', { class: 'nh', x: side === 'L' ? 0 : X1 - BAR - 4, width: X0 + BAR + 4, tabindex: 0, role: 'button' }, $('#sk-lbl')); els.hits.set(i.key, h); }
+    const y0 = Math.min(i.p.y0, to.y - 14), y1 = Math.max(i.p.y0 + i.p.h, to.y + 16);
+    h.setAttribute('y', y0); h.setAttribute('height', i.p.v ? y1 - y0 : 0); h.dataset.zone = i.key.slice(1);
+    h.setAttribute('aria-label', `Zona ${Z[i.key.slice(1)].name}`);
+  }); });
+  tween(items, first ? 0 : 520, () => { els.links.forEach((el, k) => { if (el.dataset.gone) { el.remove(); els.links.delete(k); } }); renderNotes(lay); });
+  if (first) { first = false; intro(); }
+}
+function pill(g, x, y, text, cls) {
+  const p = mk('g', { class: 'pill ' + cls }, g), r = mk('rect', { rx: 8, height: 18, y: -9 }, p), t = mk('text', { y: 3.8, 'text-anchor': 'middle' }, p);
+  t.textContent = text; const w = t.getComputedTextLength() + 14; r.setAttribute('width', w); r.setAttribute('x', -w / 2);
+  p.setAttribute('transform', `translate(${Math.min(SW - w / 2 - 2, Math.max(w / 2 + 2, x))} ${y})`); return p;
+}
+function renderNotes(lay) {
+  const g = $('#sk-notes'); g.innerHTML = ''; const z = state.zone;
+  if (!z) { const top = data.empties[0]; const l = lay.links.find(l => l.f.key === top.key); if (!l) return;
+    const y = ((l.sy0 + l.sy1) / 2 + (l.ty0 + l.ty1) / 2) / 2;
+    pill(g, xm, y, state.metric === 'km' ? `${pct(top.km / data.E)}% km kosong` : `${top.n}× pulang kosong`, 'E big'); return; }
+  const out = [], inn = [];
+  lay.links.filter(l => related(l.f)).forEach(l => { if (l.f.a === z) out.push({ l, c: (l.ty0 + l.ty1) / 2 }); if (l.f.b === z && l.f.a !== z) inn.push({ l, c: (l.sy0 + l.sy1) / 2 }); });
+  relax(out, 20, 10, SH - 10); relax(inn, 20, 10, SH - 10);
+  out.forEach(o => pill(g, xb - 34, o.y, vtxt(val(o.l.f)), o.l.f.k));
+  inn.forEach(o => pill(g, xa + 34, o.y, vtxt(val(o.l.f)), o.l.f.k));
+}
+function intro() {
+  if (RM) return; const r = $('#skcr'), t0 = performance.now();
+  r.setAttribute('width', 0); r.setAttribute('x', xa);
+  const step = now => { const p = Math.max(0, Math.min(1, (now - t0) / 1100)), e = 1 - Math.pow(1 - p, 3); r.setAttribute('width', (SW - xa) * e + 2); if (p < 1) requestAnimationFrame(step); else { r.setAttribute('x', 0); r.setAttribute('width', SW); } };
+  requestAnimationFrame(step);
+}
+
+/* ---------------------------------------------------------------- map */
+let map, gRoads, gArcs, gZones, arcs = [], zms = {};
+function fitZones(anim) {
+  if (!map) return; const pts = state.zone ? zoneSet() : ORDER.map(z => Z[z].at);
+  map.fitBounds(L.latLngBounds(pts), { paddingTopLeft: [26, 64], paddingBottomRight: [96, 26], animate: anim && !RM, maxZoom: 10 });
+}
+function zoneSet() { const s = new Set([state.zone]); data.flows.forEach(f => { if (f.a === state.zone) s.add(f.b); if (f.b === state.zone) s.add(f.a); }); return [...s].map(z => Z[z].at); }
+function initMap() {
+  if (!window.L) { $('#map').innerHTML = '<p style="padding:20px;color:#6b655f;font-size:13px">Peta tidak dapat dimuat (offline).</p>'; return; }
+  map = L.map('map', { zoomControl: false, zoomSnap: 0.25, minZoom: 6, maxZoom: 17, attributionControl: true });
+  L.control.zoom({ position: 'bottomright', zoomInTitle: 'Perbesar', zoomOutTitle: 'Perkecil' }).addTo(map);
+  map.attributionControl.setPrefix(false);
+  const tl = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(map);
+  tl.on('load', () => { window.__p.tiles = true; });
+  map.createPane('roads').style.zIndex = 380;
+  gRoads = L.layerGroup().addTo(map); gArcs = L.layerGroup().addTo(map); gZones = L.layerGroup().addTo(map);
+  fitZones(false);
+  ORDER.forEach(z => {
+    const m = L.marker(Z[z].at, { icon: L.divIcon({ className: 'zmk', iconSize: [0, 0], html: `<div class="zm ${Z[z].type}${z === 'S2' ? ' l' : ''}"><span class="d"></span><span class="t">${Z[z].name}<small>${Z[z].type}</small></span></div>` }), keyboard: true, title: Z[z].full, riseOnHover: true }).addTo(gZones);
+    m.on('click', () => toggleZone(z)); zms[z] = m;
+  });
+}
+function drawMap() {
+  if (!map) return; gRoads.clearLayers(); gArcs.clearLayers(); arcs = [];
+  const pairs = new Set(data.flows.map(f => [f.a, f.b].sort().join('|')));
+  pairs.forEach(p => { const [a, b] = p.split('|'); const pts = D.roads[a + '-' + b] || D.roads[b + '-' + a]; if (pts) L.polyline(pts, { pane: 'roads', color: '#8b827a', weight: 2.5, opacity: .5, interactive: false }).addTo(gRoads); });
+  const max = Math.max(...data.flows.map(val)), Zm = 9;
+  [...data.flows].sort((a, b) => val(b) - val(a)).forEach(f => {
+    const A = map.project(Z[f.a].at, Zm), B = map.project(Z[f.b].at, Zm), dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy);
+    const C = L.point((A.x + B.x) / 2 - dy / len * len * .2, (A.y + B.y) / 2 + dx / len * len * .2);
+    const at = t => L.point((1 - t) ** 2 * A.x + 2 * (1 - t) * t * C.x + t * t * B.x, (1 - t) ** 2 * A.y + 2 * (1 - t) * t * C.y + t * t * B.y);
+    const pts = []; for (let i = 3; i <= 37; i++) pts.push(map.unproject(at(i / 40), Zm));
+    const w = 2 + 8.5 * val(f) / max, col = f.k === 'L' ? '#0a8d89' : '#c0763e';
+    const casing = L.polyline(pts, { color: '#fff', weight: w + 3.5, opacity: .9, interactive: false, className: 'arc', lineCap: 'butt' }).addTo(gArcs);
+    const line = L.polyline(pts, { color: col, weight: w, opacity: .85, interactive: false, className: 'arc', lineCap: 'butt' }).addTo(gArcs);
+    const hit = L.polyline(pts, { color: '#000', weight: Math.max(18, w + 8), opacity: 0, bubblingMouseEvents: false }).addTo(gArcs);
+    hit.on('click', () => openSheet(f.key));
+    const p0 = at(.56), p1 = at(.6), ang = Math.atan2(p1.y - p0.y, p1.x - p0.x) * 180 / Math.PI, sc = .62 + w / 18;
+    const arw = L.marker(map.unproject(at(.58), Zm), { interactive: false, keyboard: false, icon: L.divIcon({ className: 'arw', iconSize: [0, 0], html: `<i style="border-left-color:${f.k === 'L' ? '#006264' : '#85461b'};transform:rotate(${ang}deg) scale(${sc})"></i>` }) }).addTo(gArcs);
+    const lb = L.marker(map.unproject(at(.5), Zm), { interactive: false, keyboard: false, icon: L.divIcon({ className: 'alb ' + f.k, iconSize: [0, 0], html: `<span>${vtxt(val(f))}</span>` }) }).addTo(gArcs);
+    arcs.push({ f, casing, line, arw, lb });
+  });
+  styleMap();
+}
+function styleMap() {
+  if (!map) return; const z = state.zone;
+  arcs.forEach(a => { const on = related(a.f), le = a.lb.getElement(); if (le) le.firstChild.style.opacity = z && on ? 1 : 0; a.line.setStyle({ opacity: on ? .85 : .08 }); a.casing.setStyle({ opacity: on ? .9 : 0 }); const el = a.arw.getElement(); if (el) el.firstChild.style.opacity = on ? 1 : .1; });
+  ORDER.forEach(k => { const el = zms[k].getElement(); if (!el) return; const zm = el.firstChild;
+    const linked = !z || k === z || data.flows.some(f => (f.a === z && f.b === k) || (f.b === z && f.a === k));
+    zm.classList.toggle('on', k === z); zm.classList.toggle('dim', !linked); zms[k].setZIndexOffset(k === z ? 1000 : 0); });
+}
+
+/* ---------------------------------------------------------------- opportunities */
+function renderOps() {
+  const d = data, top = d.empties.filter(f => f.km >= d.E * .08).slice(0, 3);
+  const cover = top.reduce((a, f) => a + f.km, 0), after = (d.E - cover) / d.T;
+  $('#opsum').innerHTML = `${top.length === 1 ? 'Arus ini' : top.length + ' arus ini'} = <b>${pct(cover / d.E)}% km kosong</b> (${state.period} hari). Jika semuanya dapat muatan balik, km kosong turun dari <b>${pct(d.E / d.T)}%</b> ke <b>${pct(after)}%</b>.`;
+  $('#ops').innerHTML = top.map((f, i) => {
+    const per = f.km / f.n, eNow = pct(d.E / d.T), eA = pct((d.E - f.km) / d.T);
+    let best = null;
+    ['RAPP', 'PEL', 'PB'].filter(x => x !== f.a && x !== f.b).forEach(x => { const det = rk(f.a, x) + rk(x, f.b) - rk(f.a, f.b), paid = rk(x, f.b); if (det <= 60 && (!best || paid > best.paid)) best = { x, det, paid }; });
+    let optB = '';
+    if (best) { const saveE = f.n * (per - rk(f.a, best.x)), extra = f.n * best.det, eB = pct((d.E - saveE) / (d.T + extra));
+      optB = `<li class="opt"><span class="ic">B</span><div>Atau muat di <b>${Z[best.x].name}</b> (${rk(f.a, best.x)} km kosong dulu, +${best.det} km jalan) → <strong>${fmt(f.n * best.paid)} km dibayar</strong><br><span class="dl">km kosong ${eNow}% → ${eB}%</span></div></li>`; }
+    else if (per < 70) optB = `<li class="opt na"><span class="ic" style="background:var(--fillc);color:var(--ink3)">i</span><div>Jarak pendek (±${Math.round(per)} km per perjalanan) — biasanya kurang menarik untuk muatan balik.</div></li>`;
+    return `<article class="op${state.zone && !related(f) ? ' dim' : ''}"><header><span class="rk">${i + 1}</span><div><h3>${arrow(f.a, f.b)}</h3><p>${f.n}× pulang kosong · ${fmt(f.km)} km · <b>${pct(f.km / d.E)}% km kosong</b></p></div></header>
+      <div class="opbar"><i style="width:${pct(f.km / d.E)}%"></i></div>
+      <ul><li class="opt"><span class="ic">A</span><div>Muatan balik dari <b>${Z[f.a].name}</b> ke arah ${Z[f.b].name} → <strong>hingga ${fmt(f.km)} km dibayar</strong><br><span class="dl">km kosong ${eNow}% → ${eA}%</span></div></li>${optB}</ul>
+      <footer><span>Biaya jalan kosong kini ≈ <b>${rp(f.km * COST)}</b></span><button class="lnk" data-open="${f.key}">Lihat ${f.n} perjalanan →</button></footer></article>`;
+  }).join('');
+}
+
+/* ---------------------------------------------------------------- sheet */
+let lastFocus;
+function openSheet(key) {
+  const f = data.flows.find(x => x.key === key); if (!f) return;
+  lastFocus = document.activeElement;
+  $('#sh-k').className = 'kind ' + f.k; $('#sh-k').textContent = f.k === 'L' ? 'Bermuatan' : 'Kosong';
+  $('#sh-t').textContent = arrow(f.a, f.b);
+  const noDo = f.trips.filter(t => t.k === 'L' && !t.do).length;
+  $('#sh-p').innerHTML = `<b>${f.n} perjalanan</b> · ${fmt(f.km)} km · ${dur(f.min)} · ${state.period} hari<br>` + (f.k === 'E' ? `≈ ${rp(f.km * COST)} biaya jalan kosong (Rp 3.200/km) · ${pct(f.km / data.E)}% km kosong` : `${fmt(f.km)} km dibayar · DO ${f.n - noDo}/${f.n}${noDo ? ` · <span style="color:var(--warn)">${noDo} tanpa DO</span>` : ''}`);
+  $('#sh-l').innerHTML = [...f.trips].reverse().map(t => { const p = dparts(t.d);
+    const tag = t.k === 'E' ? '<span class="tg e">kosong</span>' : t.do ? `<span class="tg do">${t.do}</span>` : '<span class="tg no">Tanpa DO</span>';
+    return `<li><span class="dd"><small>${p.w}</small><b>${p.d}</b></span><div class="mid"><b>${t.t0}–${t.t1}</b><span>${p.d} ${p.m} · ${dur(t.min)}${t.by ? ' · dibuat oleh ' + t.by : ''}</span></div><div class="rt"><b>${fmt(t.km)} km</b>${tag}</div></li>`; }).join('');
+  $('#sh-l').scrollTop = 0; document.body.classList.add('open'); setTimeout(() => $('#sh-x').focus({ preventScroll: true }), 50);
+}
+function closeSheet() { if (!document.body.classList.contains('open')) return; document.body.classList.remove('open'); lastFocus && lastFocus.focus && lastFocus.focus({ preventScroll: true }); }
+$('#scrim').onclick = closeSheet; $('#sh-x').onclick = closeSheet;
+(() => { const g = $('#grab'), sh = $('#sheet'); let y0 = null, dy = 0;
+  g.onpointerdown = e => { y0 = e.clientY; dy = 0; g.setPointerCapture(e.pointerId); sh.style.transition = 'none'; };
+  g.onpointermove = e => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); sh.style.transform = `translateY(${dy}px)`; };
+  g.onpointerup = g.onpointercancel = () => { if (y0 == null) return; y0 = null; sh.style.transition = sh.style.transform = ''; if (dy > 70) closeSheet(); }; })();
+
+/* ---------------------------------------------------------------- state */
+function toggleZone(z) { state.zone = state.zone === z ? null : z; update('zone'); }
+function update(why) {
+  if (why !== 'zone') data = compute();
+  if (state.zone && !data.flows.some(f => f.a === state.zone || f.b === state.zone)) state.zone = null;
+  $('#clrz').textContent = 'Semua zona';
+  renderHero(); renderSankey(); renderOps();
+  if (why === 'zone') { styleMap(); fitZones(true); } else { drawMap(); if (why === 'period') fitZones(true); }
+}
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { const p = +b.dataset.p; if (p === state.period) return; state.period = p; document.querySelectorAll('[data-p]').forEach(x => x.setAttribute('aria-pressed', x === b)); update('period'); });
+document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { if (b.dataset.m === state.metric) return; state.metric = b.dataset.m; document.querySelectorAll('[data-m]').forEach(x => x.setAttribute('aria-pressed', x === b)); update('metric'); });
+$('#clr').onclick = () => { state.zone = null; update('zone'); };
+$('#sk').addEventListener('click', e => { const k = e.target.closest('[data-key]'); if (k) return openSheet(k.dataset.key); const z = e.target.closest('[data-zone]'); if (z) toggleZone(z.dataset.zone); });
+$('#sk').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
+$('#ops').addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b) openSheet(b.dataset.open); });
+/* plein écran / carte seule */
+function setSolo(on) {
+  const c = $('#mapcard'); if (c.classList.contains('solo') === on) return;
+  c.classList.toggle('solo', on); document.body.style.overflow = on ? 'hidden' : '';
+  if (on && document.fullscreenEnabled && !document.fullscreenElement) c.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+  if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  setTimeout(() => { if (map) { map.invalidateSize(); fitZones(false); } }, 60);
+  (on ? $('#fsx') : $('#fs')).focus({ preventScroll: true });
+}
+$('#fs').onclick = () => setSolo(true); $('#fsx').onclick = () => setSolo(false);
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) setSolo(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSheet(); setSolo(false); } });
+
+window.__p = { ready: false, tiles: false, zone: z => toggleZone(z), open: k => openSheet(k), solo: setSolo };
+document.addEventListener('DOMContentLoaded', () => {
+  data = compute(); renderHero(); initMap(); renderSankey(); renderOps(); drawMap();
+  window.__p.ready = true;
+});
+})();
+</script>
+</body>
+</html>
