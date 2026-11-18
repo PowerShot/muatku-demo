@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0b0b0c">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Muatku · L — Papan</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Martian+Mono:wdth,wght@75..112.5,300..700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0b; --ink:#efe9dc; --am:#ffb51f; --gr:#41d98a; --rd:#ff5644; --cy:#5ec8ea; --li:#c9b8ff; --dim:#8a867d; --dim2:#5d5a54;
+  --fd:'Big Shoulders Display','Oswald','Arial Narrow',sans-serif;
+  --fm:'Martian Mono',ui-monospace,Menlo,monospace;
+  --paper:#efe7d6; --paper-ink:#18150f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#040405;color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--fm);font-stretch:87.5%;font-size:12px;overflow:hidden}
+button{font:inherit;font-stretch:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#app{position:relative;max-width:430px;height:100dvh;margin:0 auto;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;
+  background:radial-gradient(circle at 1px 1px,rgba(255,255,255,.04) 1px,transparent 1.3px) 0 0/6px 6px,linear-gradient(#0e0e10,#09090a 60%)}
+
+/* ---------- en-tête ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid #1c1d20;background:linear-gradient(#0c0c0d,#0a0a0b)}
+.brand{display:flex;flex-direction:column;gap:4px;min-width:0}
+.brand b{font:800 22px/1 var(--fd);letter-spacing:.07em;color:var(--am)}
+.brand span{font-size:8.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;white-space:nowrap}
+.clock{display:flex;align-items:center;gap:7px}
+.clock em{font-style:normal;font-size:8.5px;letter-spacing:.14em;color:var(--dim)}
+.colon .fc:nth-child(3) s{animation:colon 2s steps(1) infinite}
+@keyframes colon{50%{opacity:.25}}
+.snd{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:#151517;box-shadow:inset 0 0 0 1px #24252a;color:var(--dim)}
+.snd svg{width:18px;height:18px}
+.snd[aria-pressed=true]{color:#111;background:var(--am);box-shadow:none}
+.snd .w{opacity:0}.snd[aria-pressed=true] .w{opacity:1}.snd[aria-pressed=true] .x{opacity:0}
+
+/* ---------- écrans ---------- */
+main{position:relative;overflow:hidden}
+.scr{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 12px 22px;display:none;flex-direction:column;gap:10px;scrollbar-width:none}
+.scr::-webkit-scrollbar{display:none}
+.scr.on{display:flex}
+
+/* ---------- panneau ---------- */
+.board{position:relative;flex:none;border-radius:13px;padding:13px 12px 12px;background:linear-gradient(180deg,#161618,#111113);
+  box-shadow:inset 0 0 0 1px #222327,inset 0 1px 0 rgba(255,255,255,.05),0 14px 30px -18px #000}
+.board::before{content:"";position:absolute;inset:5px;pointer-events:none;
+  background:radial-gradient(circle,#34353a 1.2px,transparent 1.7px) left top/5px 5px no-repeat,radial-gradient(circle,#34353a 1.2px,transparent 1.7px) right top/5px 5px no-repeat,
+             radial-gradient(circle,#34353a 1.2px,transparent 1.7px) left bottom/5px 5px no-repeat,radial-gradient(circle,#34353a 1.2px,transparent 1.7px) right bottom/5px 5px no-repeat}
+.bh{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:8.5px;letter-spacing:.15em;color:var(--dim);text-transform:uppercase;margin-bottom:10px;padding:0 2px}
+.bh b{color:var(--ink);font-weight:500}
+.lbl{font-size:8.5px;letter-spacing:.15em;color:var(--dim);text-transform:uppercase}
+
+/* ---------- volets ---------- */
+.flap{display:inline-flex;gap:var(--g);vertical-align:middle}
+.fl-xl{--w:96px;--h:134px;--fs:128px;--g:6px;--r:9px}
+.fl-l{--w:42px;--h:60px;--fs:56px;--g:3px;--r:5px}
+.fl-m{--w:18px;--h:28px;--fs:26px;--g:2px;--r:3px}
+.fl-sm{--w:14px;--h:23px;--fs:21px;--g:1.5px;--r:2.5px}
+.fl-s{--w:10px;--h:20px;--fs:18px;--g:1px;--r:2px}
+.flap[data-c=am]{--c:var(--am)}.flap[data-c=gr]{--c:var(--gr)}.flap[data-c=rd]{--c:var(--rd)}.flap[data-c=dim]{--c:#a39d90}.flap[data-c=cy]{--c:var(--cy)}
+.fc{position:relative;flex:none;width:var(--w);height:var(--h);border-radius:var(--r);perspective:calc(var(--h) * 5);
+  font:700 var(--fs)/var(--h) var(--fd);text-align:center;color:var(--c,var(--ink));box-shadow:0 1px 1.5px rgba(0,0,0,.7)}
+.fc i{font-style:normal;position:absolute;left:0;right:0;height:50%;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.fc .u,.fc .fu{top:0;border-radius:var(--r) var(--r) 0 0;background:linear-gradient(#27282c,#1e1f22)}
+.fc .l,.fc .fl{top:50%;border-radius:0 0 var(--r) var(--r);background:linear-gradient(#1b1c1f,#151618)}
+.fc .fu{transform-origin:50% 100%;transform:rotateX(-90deg);z-index:2;background:linear-gradient(#2c2d31,#202125)}
+.fc .fl{transform-origin:50% 0;transform:rotateX(90deg);z-index:2;background:linear-gradient(#202125,#17181a)}
+.fc s{display:block;height:var(--h);text-decoration:none;transform:translateY(var(--dy,.035em))}
+.fc .l s,.fc .fl s{margin-top:calc(var(--h) / -2)}
+.fc::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;margin-top:-.5px;background:rgba(0,0,0,.9);box-shadow:0 1px 0 rgba(255,255,255,.035);z-index:4}
+.fl-xl .fc::before,.fl-l .fc::before,.fl-m .fc::before{content:"";position:absolute;left:-1px;right:-1px;top:50%;height:calc(var(--h) * .09);transform:translateY(-50%);z-index:5;
+  background:linear-gradient(90deg,#0b0b0c 1.5px,#3a3b40 1.5px 3px,transparent 3px calc(100% - 3px),#3a3b40 calc(100% - 3px) calc(100% - 1.5px),#0b0b0c calc(100% - 1.5px))}
+.flap[data-c=am] .fc s{text-shadow:0 0 calc(var(--fs) * .25) rgba(255,181,31,.22)}
+.blink .fc s{animation:blink 1.9s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ---------- POSISI ---------- */
+.unit{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px 0;font-size:9.5px;letter-spacing:.04em;color:var(--dim)}
+.unit b{color:var(--ink);font-weight:600}
+.led{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gr);box-shadow:0 0 8px var(--gr);margin-right:6px;vertical-align:1px}
+.hero .dest{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.conf{display:flex;align-items:center;gap:6px;color:var(--ink)}
+.conf i{display:inline-block;width:5px;height:11px;border-radius:1px;background:var(--gr)}
+.conf i:nth-child(1){height:6px}.conf i:nth-child(2){height:8.5px}
+.why{font-size:9.5px;line-height:1.5;color:var(--dim);margin:8px 2px 0}
+.why b{color:var(--ink);font-weight:500}
+.state{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:12px 0 0;padding:9px 10px;border-radius:9px;background:#0c0c0d;box-shadow:inset 0 0 0 1px #1f2023}
+.state .pulse{position:relative;width:9px;height:9px;border-radius:50%;background:var(--am);flex:none}
+.state .pulse::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--am);animation:ring 1.9s ease-out infinite}
+@keyframes ring{0%{transform:scale(.4);opacity:1}100%{transform:scale(1.5);opacity:0}}
+.state .from{flex-basis:100%;padding:8px 0 0 18px;margin-top:1px;border-top:1px dashed #26272b;font-size:9px;line-height:1.45;color:var(--dim);letter-spacing:.04em}
+.state .from b{color:var(--ink);font-weight:500}
+.trio{display:grid;grid-template-columns:auto auto auto;justify-content:space-between;gap:8px;margin-top:12px}
+.trio>div{display:flex;flex-direction:column;gap:5px}
+.trio .v{display:flex;align-items:flex-end;gap:4px}
+.trio em{font-style:normal;font-size:8.5px;letter-spacing:.1em;color:var(--dim);padding-bottom:2px}
+.strip .halo{transform-box:fill-box;transform-origin:center;animation:ring 1.9s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.strip .halo{animation:none;opacity:0}}
+.strip svg{display:block;width:100%;height:auto;overflow:visible}
+.tbl .th,.tbl .tr{display:grid;grid-template-columns:auto auto 1fr;column-gap:8px;align-items:center}
+.tbl .th{font-size:7.5px;letter-spacing:.16em;color:var(--dim2);padding:0 2px 6px;border-bottom:1px solid #222327}
+.tbl .th span:nth-child(1){width:calc(5 * 11px - 1px)}.tbl .th span:nth-child(2){width:calc(7 * 11px - 1px)}
+.tbl .tr{padding:5px 2px;border-bottom:1px solid #1b1c1f;border-radius:5px;transition:background .25s}
+.tbl .tr:last-of-type{border-bottom:0}
+.tr.pick{cursor:pointer}
+.tr.pick:active{background:#1d1e22}
+.tr.sel{background:#232328;box-shadow:inset 0 0 0 1px #34353b}
+.tr.sel::after{content:"";grid-column:1/-1}
+.foot{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.08em;color:var(--dim);padding:9px 2px 0;border-top:1px solid #222327;margin-top:4px}
+.foot b{color:var(--ink);font-weight:500}
+
+/* ---------- RIWAYAT ---------- */
+.daybar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.daybar button{width:42px;height:42px;border-radius:10px;background:#151517;box-shadow:inset 0 0 0 1px #24252a;font:700 22px/1 var(--fd);color:var(--ink)}
+.daybar button:disabled{opacity:.3;cursor:default}
+.daybar .mid{display:flex;flex-direction:column;align-items:center;gap:5px}
+.slot{height:9px;margin:4px 8px -6px;border-radius:5px;background:#050506;box-shadow:inset 0 2px 3px #000,0 1px 0 rgba(255,255,255,.05)}
+.ticket{position:relative;flex:none;background:var(--paper);color:var(--paper-ink);border-radius:6px 6px 14px 14px;padding:18px 16px 14px;
+  box-shadow:0 22px 40px -22px #000;background-image:radial-gradient(rgba(0,0,0,.035) .6px,transparent .8px);background-size:3px 3px}
+.ticket.print{animation:print .9s steps(14,end) both}
+@keyframes print{from{clip-path:inset(0 0 100% 0);transform:translateY(-14px)}to{clip-path:inset(0 0 0 0);transform:none}}
+.tk-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.tk-top .lbl{color:#6c6556}
+.tk-no{font:700 19px/1.1 var(--fm);font-stretch:75%;letter-spacing:.02em;margin-top:3px}
+.stamp{flex:none;transform:rotate(-7deg);border:2px solid currentColor;border-radius:5px;padding:4px 8px 3px;font:800 14px/1 var(--fd);letter-spacing:.14em;color:#20774b;opacity:.88;margin-top:4px}
+.stamp.kosong{color:#6f6758}.stamp.nodo{color:#c03a22}
+.tk-route{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;margin:14px 0 4px}
+.tk-route .code{font:800 64px/.9 var(--fd);letter-spacing:.01em}
+.tk-route .mid{position:relative;height:30px}
+.tk-route .mid::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px dashed #b9ae97}
+.tk-route .mid svg{position:absolute;left:30%;top:50%;width:30px;height:20px;transform:translate(-50%,-50%);background:var(--paper);padding:0 3px;box-sizing:content-box}
+.tk-route .mid .stop{position:absolute;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--paper);border:2px solid var(--paper-ink)}
+.tk-names{display:flex;justify-content:space-between;gap:12px;font-size:9px;line-height:1.35;color:#5e584b}
+.tk-names span:last-child{text-align:right}
+.tk-grid{display:grid;grid-template-columns:repeat(4,auto);justify-content:space-between;gap:6px;margin-top:14px}
+.tk-grid div{display:flex;flex-direction:column;gap:3px}
+.tk-grid .lbl,.tk-sec .lbl{color:#7a7262}
+.tk-grid b{font:800 22px/1 var(--fd);letter-spacing:.02em}
+.perf{position:relative;height:22px;margin:10px -16px}
+.perf::before{content:"";position:absolute;left:14px;right:14px;top:50%;border-top:2px dotted #c5b99f}
+.perf i{position:absolute;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;background:#0d0d0f}
+.perf i:first-child{left:-9px}.perf i:last-child{right:-9px}
+.tk-sec{display:grid;grid-template-columns:1fr auto;gap:5px 10px;align-items:baseline;font-size:10.5px}
+.tk-sec .k{color:#5e584b}
+.tk-sec .v{font-weight:600;text-align:right}
+.tk-sec .late{color:#c03a22}.tk-sec .ok{color:#20774b}
+.tk-sec .tot{font:800 26px/1 var(--fd);letter-spacing:.02em}
+.tk-sec hr{grid-column:1/-1;border:0;border-top:1px solid #d3c8b0;margin:3px 0}
+.chartbox{margin-top:12px;border-radius:10px;padding:10px 10px 8px;background:#121214;color:var(--ink);box-shadow:inset 0 0 0 1px #000}
+.chartbox .ro{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.chartbox .ro em{font-style:normal;font-size:8px;letter-spacing:.12em;color:var(--dim)}
+.chartbox .ro .hint{margin-left:auto}
+.chartbox svg{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.chartbox .ax{display:flex;justify-content:space-between;font-size:8px;color:var(--dim2);margin-top:5px;letter-spacing:.06em}
+.tk-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;font-size:9px;color:#6c6556}
+.tk-foot b{color:var(--paper-ink)}
+.tk-foot button{padding:9px 12px;border-radius:8px;background:var(--paper-ink);color:var(--paper);font:700 13px/1 var(--fd);letter-spacing:.1em}
+.live-note{flex:none;border-radius:13px;padding:22px 16px;text-align:center;background:#111113;box-shadow:inset 0 0 0 1px #222327;color:var(--dim);font-size:10px;line-height:1.6}
+.live-note button{margin-top:10px;padding:10px 14px;border-radius:9px;background:var(--am);color:#111;font:700 15px/1 var(--fd);letter-spacing:.1em}
+
+/* ---------- LAPORAN ---------- */
+.giant{text-align:center;padding-bottom:14px}
+.giant .flap{margin:4px auto 0}
+.giant .cap{font:800 21px/1.05 var(--fd);letter-spacing:.05em;color:var(--ink);margin-top:12px}
+.giant .cap span{color:var(--rd)}
+.giant p{font-size:9.5px;color:var(--dim);margin-top:5px;line-height:1.5}
+.leds{display:grid;grid-template-columns:repeat(50,1fr);gap:2px;height:16px;margin:14px 2px 7px}
+.leds i{border-radius:1.5px;background:#1d1e21;transition:background .2s,box-shadow .2s}
+.leds i.on-l{background:var(--am);box-shadow:0 0 6px rgba(255,181,31,.35)}
+.leds i.on-k{background:var(--rd);box-shadow:0 0 6px rgba(255,86,68,.35)}
+.leds i.on-o{background:#4a4843}
+.legend{display:flex;justify-content:center;gap:12px;font-size:8.5px;letter-spacing:.06em;color:var(--dim)}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.states .th,.states .tr{grid-template-columns:auto auto auto 1fr}
+.states .note{font-size:9px;color:var(--dim);padding:7px 2px 0;line-height:1.5}
+.states .note b{color:var(--ink);font-weight:500}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}
+.kpi{display:flex;flex-direction:column;gap:6px;padding:9px 8px 10px;border-radius:9px;background:#0c0c0d;box-shadow:inset 0 0 0 1px #1f2023;min-width:0}
+.kpi .lbl{font-size:7.5px;letter-spacing:.12em}
+.kpi small{font-size:8px;color:var(--dim2);letter-spacing:.03em}
+.net svg{display:block;width:100%;height:auto}
+.net .ln{fill:none;stroke-linecap:round;stroke-linejoin:round;transition:opacity .3s}
+.net.focus .ln:not(.hi){opacity:.14}
+.net .st{fill:#efe9dc;stroke:#0c0c0d;stroke-width:3}
+.net text{font-family:var(--fd);font-weight:800;font-size:15px;fill:var(--ink);letter-spacing:.04em}
+.net text.n{font-family:var(--fm);font-weight:400;font-size:7.5px;fill:var(--dim);letter-spacing:.05em}
+.rank .th,.rank .tr{grid-template-columns:auto 26px auto auto auto 1fr}
+.rank .th span:nth-child(1){width:10px}.rank .th span:nth-child(2){width:26px}
+.chip{display:block;width:24px;height:8px;border-radius:4px}
+.rank .tr.hi{background:#232328}
+
+/* ---------- barre d'onglets ---------- */
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:9px 10px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #1c1d20;background:#0a0a0b}
+.tab{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:10px;font:800 17px/1 var(--fd);letter-spacing:.09em;color:#8f8a80;background:#141416;box-shadow:inset 0 0 0 1px #222327;transition:background .25s,color .25s}
+.tab b{display:grid;place-items:center;width:21px;height:21px;border-radius:5px;background:#222327;font:600 10px/1 var(--fm);color:var(--ink)}
+.tab[aria-selected=true]{background:var(--am);color:#121212;box-shadow:0 6px 20px -8px rgba(255,181,31,.55)}
+.tab[aria-selected=true] b{background:#121212;color:var(--am)}
+.tab:focus-visible,.snd:focus-visible,.daybar button:focus-visible,.tr.pick:focus-visible{outline:2px solid var(--cy);outline-offset:2px}
+
+@media (prefers-reduced-motion:reduce){
+  .blink .fc s,.state .pulse::after,.colon .fc:nth-child(3) s{animation:none}
+  .ticket.print{animation:none}
+}
+</style>
+</head>
+<body>
+<div id="app" data-cur="posisi">
+  <header class="top">
+    <div class="brand"><b>MUATKU</b><span>Papan · Dump Truck 01</span></div>
+    <div class="clock">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span class="flap fl-m colon" id="f-clock" data-flap="11:16"></span><em>WIB · SEKARANG</em></div>
+      <button class="snd" id="snd" aria-pressed="false" aria-label="Bunyi papan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" stroke="none"/><path class="w" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M17 9.5l5 5m0-5l-5 5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ POSISI ============ -->
+    <section class="scr on" id="s-posisi" aria-label="Posisi">
+      <div class="unit"><span>DT-01 · <b>BM 8921 KU</b> · HINO FM 260 JD</span><span><i class="led"></i><b>MESIN NYALA</b></span></div>
+      <article class="board hero">
+        <div class="bh"><span>Tujuan · prakiraan</span><span class="conf"><i></i><i></i><i></i> Keyakinan tinggi</span></div>
+        <div class="dest">
+          <span class="flap fl-l" data-flap="PT RAPP" data-c="am"></span>
+          <span class="flap fl-m" data-flap="POWER STATION"></span>
+        </div>
+        <p class="why">Kemungkinan menuju <b>PT RAPP — Power Station</b> · arah &amp; jalur sama dengan 7 ritase sebelumnya.</p>
+        <div class="state">
+          <span class="pulse"></span>
+          <span class="flap fl-s blink" data-flap="DALAM PERJALANAN" data-c="am"></span>
+          <span class="from">DARI <b>STOCKPILE BATU AMPAR</b> · BERANGKAT <b>07:15</b></span>
+        </div>
+        <div class="trio">
+          <div><span class="lbl">ETA</span><span class="v"><span class="flap fl-m" id="f-eta" data-flap="±12:34" data-c="am"></span><em>WIB</em></span></div>
+          <div><span class="lbl">Sisa</span><span class="v"><span class="flap fl-m" id="f-left" data-len="3" data-align="r" data-flap="63"></span><em>KM</em></span></div>
+          <div><span class="lbl">Kecepatan</span><span class="v"><span class="flap fl-m" id="f-spd" data-len="2" data-align="r" data-flap="48"></span><em>KM/J</em></span></div>
+        </div>
+      </article>
+
+      <article class="board strip">
+        <div class="bh"><span>Jalur <b>BTA › RPP</b></span><span><b id="t-pos">KM 144</b> / 207</span></div>
+        <svg id="strip" viewBox="0 0 342 96" role="img" aria-label="Plan jalur Batu Ampar ke PT RAPP, truk di KM 144"></svg>
+      </article>
+
+      <article class="board tbl">
+        <div class="bh"><span>Papan hari ini</span><b>RAB 18 NOV</b></div>
+        <div class="th"><span>JAM</span><span>RUTE</span><span>STATUS</span></div>
+        <div id="today-rows"></div>
+        <div class="foot"><span>HARI INI · <b>1 TRIP</b></span><span>JARAK <b id="t-km">162 KM</b></span></div>
+      </article>
+    </section>
+
+    <!-- ============ RIWAYAT ============ -->
+    <section class="scr" id="s-riwayat" aria-label="Riwayat">
+      <div class="daybar">
+        <button id="d-prev" aria-label="Hari sebelumnya">‹</button>
+        <div class="mid"><span class="flap fl-m" id="f-day" data-len="10" data-flap="SEL 17 NOV"></span><span class="lbl" id="d-sum">4 trip · 2 ritase · 461 km</span></div>
+        <button id="d-next" aria-label="Hari berikutnya">›</button>
+      </div>
+      <article class="board tbl" id="day-board">
+        <div class="th"><span>JAM</span><span>RUTE</span><span>STATUS</span></div>
+        <div id="day-rows"></div>
+      </article>
+      <div class="slot" aria-hidden="true"></div>
+      <div id="ticket-wrap"></div>
+    </section>
+
+    <!-- ============ LAPORAN ============ -->
+    <section class="scr" id="s-laporan" aria-label="Laporan">
+      <div class="daybar">
+        <div class="mid" style="align-items:flex-start"><span class="lbl">Papan bulanan · 30 hari</span><span class="flap fl-m" data-flap="19 OKT-17 NOV"></span></div>
+        <span class="lbl" style="text-align:right;line-height:1.6">6.296 KM<br>67 TRIP</span>
+      </div>
+      <article class="board giant">
+        <div class="bh"><span>Km tanpa muatan</span><b>KOSONG</b></div>
+        <span class="flap fl-xl" id="f-44" data-flap="44%" data-c="am"></span>
+        <div class="cap">HAMPIR SEPARUH JALAN, <span>BAK KOSONG</span></div>
+        <p>2.778 dari 6.296 km ditempuh tanpa muatan.</p>
+        <div class="leds" id="leds" aria-hidden="true"></div>
+        <div class="legend"><span><i style="background:var(--am)"></i>Bermuatan 48%</span><span><i style="background:var(--rd)"></i>Kosong 44%</span><span><i style="background:#4a4843"></i>Lainnya 8%</span></div>
+      </article>
+
+      <article class="board tbl states">
+        <div class="bh"><span>Tiga status</span><b>JAM · KM</b></div>
+        <div class="th"><span style="width:calc(9 * 15.5px)">STATUS</span><span style="width:calc(3 * 15.5px)">JAM</span><span style="width:calc(5 * 15.5px)">KM</span><span></span></div>
+        <div class="tr"><span class="flap fl-sm" data-len="9" data-flap="BERMUATAN" data-c="am"></span><span class="flap fl-sm" data-len="3" data-align="r" data-flap="69J"></span><span class="flap fl-sm" data-len="5" data-align="r" data-flap="3.025"></span><span></span></div>
+        <div class="tr"><span class="flap fl-sm" data-len="9" data-flap="KOSONG" data-c="rd"></span><span class="flap fl-sm" data-len="3" data-align="r" data-flap="63J"></span><span class="flap fl-sm" data-len="5" data-align="r" data-flap="2.778"></span><span></span></div>
+        <div class="tr"><span class="flap fl-sm" data-len="9" data-flap="BERHENTI" data-c="dim"></span><span class="flap fl-sm" data-len="3" data-align="r" data-flap="97J"></span><span class="flap fl-sm" data-len="5" data-align="r" data-flap="-"></span><span></span></div>
+        <p class="note">Berhenti: <b>79 j di zona</b> (muat &amp; bongkar) · <b>17 j 30 mnt di jalan</b></p>
+      </article>
+
+      <article class="board kpis">
+        <div class="kpi"><span class="lbl">Trip</span><span class="flap fl-sm" data-len="5" data-flap="67"></span><small>30 hari</small></div>
+        <div class="kpi"><span class="lbl">Ritase</span><span class="flap fl-sm" data-len="5" data-flap="30" data-c="am"></span><small>bermuatan</small></div>
+        <div class="kpi"><span class="lbl">Tepat waktu</span><span class="flap fl-sm" data-len="5" data-flap="77%" data-c="gr"></span><small>23 / 30 ritase</small></div>
+        <div class="kpi"><span class="lbl">Tanpa DO</span><span class="flap fl-sm" data-len="5" data-flap="2" data-c="rd"></span><small>perlu ditautkan</small></div>
+        <div class="kpi"><span class="lbl">Biaya</span><span class="flap fl-sm" data-len="6" data-flap="20,2JT"></span><small>Rp 20,2 jt</small></div>
+        <div class="kpi"><span class="lbl">Per km</span><span class="flap fl-sm" data-len="5" data-flap="3.200"></span><small>Rp / km</small></div>
+      </article>
+
+      <article class="board net" id="net">
+        <div class="bh"><span>Peta jalur · tebal = ritase</span><b>5 JALUR</b></div>
+        <svg id="netsvg" viewBox="0 0 342 214" role="img" aria-label="Peta jalur antar zona"></svg>
+      </article>
+
+      <article class="board tbl rank">
+        <div class="bh"><span>Jalur tersering</span><b>30 RITASE</b></div>
+        <div class="th"><span>#</span><span></span><span style="width:calc(7 * 11px)">JALUR</span><span style="width:calc(2 * 11px)">RIT</span><span style="width:calc(4 * 11px)">DURASI</span><span>TEPAT</span></div>
+        <div id="rank-rows"></div>
+        <p class="lbl" style="padding:9px 2px 0;letter-spacing:.06em;text-transform:none;line-height:1.5">Tepat = tiba ≤ 10 mnt dari rata-rata jalur. Ketuk jalur untuk menyorot di peta.</p>
+      </article>
+    </section>
+  </main>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-go="posisi" aria-selected="true"><b>1</b>POSISI</button>
+    <button class="tab" role="tab" data-go="riwayat" aria-selected="false"><b>2</b>RIWAYAT</button>
+    <button class="tab" role="tab" data-go="laporan" aria-selected="false"><b>3</b>LAPORAN</button>
+  </nav>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

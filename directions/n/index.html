@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0C1424">
+<title>Muatku — N · Sekilas</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Serif&family=Onest:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+:root{
+  --paper:#F4EFE5;--paper2:#E9E2D3;--paper3:#DDD4C2;
+  --ink:#1A1712;--ink2:#5B5448;--ink3:#8C8475;
+  --muat:#1F5E4B;--muat2:#2E7C63;--kosong:#E8622C;--stop:#A69E8F;--warn:#C8901A;
+  --os:'Onest',ui-sans-serif,sans-serif;--brand:'Bricolage Grotesque','Onest',sans-serif;--serif:'Instrument Serif',Georgia,serif;
+  --ease:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.3,1.35,.45,1);
+  --hatch:repeating-linear-gradient(-45deg,var(--kosong) 0 2.5px,transparent 2.5px 5.5px);
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0A090C}
+body{display:grid;place-items:center;font-family:var(--os);color:var(--ink);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+button{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent}
+#phone{position:relative;width:100vw;height:100dvh;max-width:440px;overflow:hidden;background:#0C1424;isolation:isolate;touch-action:manipulation}
+@media (min-width:520px) and (min-height:880px){#phone{width:390px;height:844px;border-radius:46px;box-shadow:0 0 0 9px #18171b,0 0 0 10px #34323a,0 50px 90px -20px rgba(0,0,0,.7)}}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- OS : wallpaper + status bar ---------- */
+.wall{position:absolute;inset:0;z-index:0;transition:transform .9s var(--ease),filter .6s}
+.wall svg{width:100%;height:100%;display:block}
+.wall::after{content:"";position:absolute;inset:0;background:var(--grain);mix-blend-mode:overlay;opacity:.9}
+.wall-dim{position:absolute;inset:0;z-index:1;background:linear-gradient(rgba(8,8,16,.34),rgba(8,8,16,.12) 40%,rgba(8,8,16,.38));opacity:0;transition:opacity .6s}
+#phone[data-scene=layar] .wall{transform:scale(1.06)}
+#phone[data-scene=layar] .wall-dim{opacity:1}
+.sb{position:absolute;z-index:60;inset:0 0 auto;height:46px;padding:4px 24px 0 30px;display:flex;align-items:center;gap:8px;color:#fff;font:600 14.5px/1 var(--os);transition:color .4s;pointer-events:none}
+#phone[data-scene=aplikasi] .sb{color:var(--ink)}
+#phone[data-scene=aplikasi].solo .sb{color:var(--ink)}
+.sb-t{min-width:40px;transition:opacity .3s}
+#phone[data-scene=kunci] .sb-t{opacity:0}
+.sb-cam{position:absolute;left:50%;top:14px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#050507;box-shadow:inset 0 0 0 2.5px #17171c}
+.sb-live{pointer-events:auto;display:flex;align-items:center;gap:6px;height:24px;padding:0 9px 0 4px;border-radius:99px;border:0;background:var(--paper);color:var(--ink);font:700 12px/1 var(--brand);opacity:0;transform:translateY(-6px) scale(.9);transition:opacity .35s,transform .45s var(--spring);cursor:pointer}
+#phone[data-scene=layar] .sb-live{opacity:1;transform:none}
+.sb-live svg{width:18px;height:18px}
+.sb-r{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12.5px}
+.sig{display:flex;gap:2.5px;align-items:center}.sig i{width:4px;height:4px;border-radius:50%;background:currentColor}.sig i:nth-child(4){opacity:.35}
+.bat{position:relative;width:27px;height:13px;border-radius:4.5px;border:1.5px solid currentColor;opacity:.95;display:grid;place-items:center;font:700 8.5px/1 var(--os)}
+.bat::after{content:"";position:absolute;right:-4px;top:3.5px;width:2px;height:4px;border-radius:0 2px 2px 0;background:currentColor}
+
+/* ---------- scenes ---------- */
+.scene{position:absolute;inset:0;transition:transform .65s var(--ease),opacity .45s var(--ease)}
+#lock{z-index:20}
+#home{z-index:10}
+#phone:not([data-scene=kunci]) #lock{transform:translateY(-100%);opacity:0;pointer-events:none}
+#phone[data-scene=kunci] #home{transform:scale(1.07);opacity:0;pointer-events:none}
+#phone[data-scene=aplikasi] #home{transform:scale(.92);opacity:.4;pointer-events:none}
+#app{z-index:30;background:var(--paper);visibility:hidden;clip-path:inset(var(--ct,45%) var(--cr,25%) var(--cb,45%) var(--cl,25%) round var(--crad,24px));transition:clip-path .58s var(--ease),visibility 0s .58s}
+#phone[data-scene=aplikasi] #app{visibility:visible;clip-path:inset(0 0 0 0 round 0px);transition:clip-path .58s var(--ease),visibility 0s}
+.cover{position:absolute;inset:0;z-index:2000;background:var(--cover,var(--paper));pointer-events:none;opacity:1;transition:opacity .16s}
+#phone[data-scene=aplikasi] .cover{opacity:0;transition:opacity .32s .2s}
+
+/* ---------- maquette nav (pas l'OS) ---------- */
+.dtab{position:absolute;z-index:90;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:2px;padding:4px;border-radius:99px;background:rgba(14,13,12,.82);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.08);transition:transform .45s var(--ease),opacity .3s}
+.dtab .tag{font:600 10px/1 var(--os);letter-spacing:.14em;color:rgba(255,255,255,.42);padding:0 8px 0 10px;text-transform:uppercase}
+.dtab button{border:0;background:none;color:rgba(255,255,255,.66);font:600 13px/1 var(--os);padding:11px 14px;border-radius:99px;cursor:pointer;transition:background .3s,color .3s}
+.dtab button[aria-current=true]{background:var(--paper);color:var(--ink)}
+#phone.solo .dtab{transform:translate(-50%,140%);opacity:0}
+
+/* ---------- Muatku glyph ---------- */
+.mk{display:inline-grid;place-items:center;flex:none;width:18px;height:18px;border-radius:6px;background:var(--ink);color:var(--paper)}
+.mk svg{width:13px;height:13px}
+
+/* ---------- KUNCI ---------- */
+#lock{padding:0 18px;color:#fff;display:flex;flex-direction:column}
+.lk-top{margin-top:58px;padding:0 4px;display:flex;flex-direction:column}
+.lk-date{display:flex;align-items:center;gap:7px;font:500 15.5px/1 var(--os);letter-spacing:.01em;color:rgba(255,255,255,.88)}
+.lk-date svg{width:12px;height:14px;opacity:.85}
+.lk-clock{font:400 124px/.84 var(--serif);letter-spacing:-.025em;margin:10px 0 0 -6px;transition:font-size .55s var(--ease),margin .55s var(--ease);text-shadow:0 2px 30px rgba(0,0,0,.25)}
+#lock.exp .lk-clock{font-size:52px;margin-top:4px}
+#lock.exp .lk-top{margin-top:52px}
+#lock.exp .la-m{margin:6px 0 8px}
+#lock.exp .la-eta{font-size:34px}
+#lock.exp .la-f{max-height:0;margin-top:0;padding-top:0;opacity:0;border-top-color:transparent}
+#lock.exp .nf{padding-top:10px;padding-bottom:10px}
+.lk-top{transition:margin .55s var(--ease)}
+.la-m,.la-eta{transition:margin .55s var(--ease),font-size .55s var(--ease)}
+.la{display:block;width:100%;margin-top:22px;border:0;text-align:left;cursor:pointer;background:var(--grain),var(--paper);color:var(--ink);border-radius:26px;padding:13px 16px 13px;box-shadow:0 18px 40px -16px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.7);transition:transform .25s var(--ease),margin .55s var(--ease)}
+#lock.exp .la{margin-top:12px}
+.la:active{transform:scale(.98)}
+.la-h{display:flex;align-items:center;gap:7px;font:600 12px/1 var(--os);color:var(--ink2)}
+.la-h b{color:var(--ink);font-weight:700}
+.live{margin-left:auto;display:flex;align-items:center;gap:5px;font:700 10px/1 var(--os);letter-spacing:.12em;color:var(--muat)}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--muat2);box-shadow:0 0 0 0 rgba(46,124,99,.5);animation:ping 1.8s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(46,124,99,.55)}80%,100%{box-shadow:0 0 0 7px rgba(46,124,99,0)}}
+.la-m{display:flex;align-items:flex-end;justify-content:space-between;margin:9px 0 10px}
+.la-m small{display:block;font:600 11px/1 var(--os);color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+.la-eta{font:700 40px/.9 var(--brand);letter-spacing:-.035em}
+.la-eta em{font-style:normal;font-weight:500;color:var(--ink3);font-size:26px;margin-right:2px}
+.la-km{text-align:right;font:700 28px/.9 var(--brand);letter-spacing:-.03em}
+.la-km span{font:600 13px var(--os);letter-spacing:0;color:var(--ink2);margin-left:3px}
+.trk{position:relative;height:30px;margin:0 2px}
+.trk .rail{position:absolute;left:0;right:0;top:19px;height:4px;border-radius:4px;background:repeating-linear-gradient(90deg,var(--ink3) 0 4px,transparent 4px 9px);opacity:.55}
+.trk .done{position:absolute;left:0;top:18px;height:6px;border-radius:6px;background:var(--muat);width:0;transition:width .9s linear}
+.trk .end{position:absolute;top:15px;width:12px;height:12px;border-radius:50%;border:3px solid var(--ink);background:var(--paper)}
+.trk .end.a{left:-4px;border-color:var(--muat);background:var(--muat)}
+.trk .end.b{right:-4px;border-radius:3px}
+.trk .tk{position:absolute;top:0;left:0;width:34px;margin-left:-17px;color:var(--ink);transition:left .9s linear}
+.tk svg{width:34px;height:21px;display:block;animation:bob .7s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-1.2px)}}
+.la-ends{display:flex;justify-content:space-between;font:600 11.5px/1 var(--os);color:var(--ink2);margin-top:4px}
+.la-f{display:flex;gap:6px;align-items:center;white-space:nowrap;overflow:hidden;max-height:40px;transition:max-height .5s var(--ease),margin .5s var(--ease),padding .5s var(--ease),opacity .3s;margin-top:10px;padding-top:9px;border-top:1px solid rgba(26,23,18,.1);font:500 12px/1 var(--os);color:var(--ink2)}
+.la-f b{color:var(--ink);font-weight:700}
+.la-f .upd{margin-left:auto;color:var(--ink3)}
+.nf-h{display:flex;justify-content:space-between;align-items:center;margin:18px 4px 9px;font:600 13px/1 var(--os);color:rgba(255,255,255,.92);transition:margin .55s var(--ease)}
+#lock.exp .nf-h{margin-top:14px}
+.nf-h button{border:0;cursor:pointer;background:rgba(255,255,255,.17);color:#fff;border-radius:99px;padding:7px 12px;font:600 12px/1 var(--os);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.stack{position:relative;height:84px;transition:height .5s var(--ease)}
+.nf{position:absolute;left:0;right:0;top:0;transform-origin:50% 100%;display:grid;grid-template-columns:40px 1fr auto;column-gap:11px;align-items:start;padding:12px 14px 12px 12px;border-radius:22px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:pan-y;background:rgba(250,246,238,.8);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);box-shadow:0 10px 26px -14px rgba(0,0,0,.55);color:var(--ink);transition:transform .5s var(--ease),opacity .35s}
+.nf.drag{transition:none}
+.nf>*{transition:opacity .25s}
+.nf.behind>*{opacity:0}
+.nf-i{position:relative;width:40px;height:40px;border-radius:13px;background:var(--grain),var(--paper);box-shadow:inset 0 0 0 1px rgba(26,23,18,.08);display:grid;place-items:center;color:var(--ink)}
+.nf-i svg{width:22px;height:22px}
+.nf-i b{position:absolute;right:-3px;bottom:-3px;width:14px;height:14px;border-radius:50%;border:2.5px solid #f6f1e8;background:var(--c,var(--muat))}
+.nf-a{font:600 11px/1 var(--os);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:1px 0 5px}
+.nf-t{font:700 15px/1.2 var(--os);letter-spacing:-.01em}
+.nf-b{font:400 13px/1.32 var(--os);color:var(--ink2);margin-top:3px}
+.nf-tm{font:500 12px/1 var(--os);color:var(--ink3);white-space:nowrap;margin-top:1px}
+.nf-n{position:absolute;right:12px;bottom:10px;font:700 11px/1 var(--os);color:var(--ink3);opacity:0}
+.stack:not(.exp) .nf:first-child .nf-n{opacity:1}
+.nf-empty{font:500 13px var(--os);color:rgba(255,255,255,.8);text-align:center;padding:14px 0;display:none}
+.nf-empty button{border:0;background:none;color:#fff;font-weight:700;text-decoration:underline;cursor:pointer}
+.unlock{position:absolute;left:0;right:0;bottom:calc(76px + env(safe-area-inset-bottom));margin:auto;width:max-content;border:0;background:none;color:rgba(255,255,255,.8);font:500 13px/1 var(--os);display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:opacity .3s}
+.unlock i{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,255,255,.55);display:grid;place-items:center;animation:nudge 2.4s var(--ease) infinite}
+.unlock svg{width:12px;height:12px}
+@keyframes nudge{0%,60%,100%{transform:none}75%{transform:translateY(-6px)}}
+#lock.exp .unlock{opacity:0;pointer-events:none}
+
+/* ---------- LAYAR UTAMA ---------- */
+#home{padding:56px 20px 0}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:74px;gap:12px}
+.w{position:relative;display:block;border:0;text-align:left;cursor:pointer;color:var(--ink);background:var(--grain),var(--paper);border-radius:24px;padding:13px 14px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.75),0 14px 34px -14px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.16);transition:transform .25s var(--ease)}
+.w:active{transform:scale(.965)}
+.w-s{grid-column:span 2;grid-row:span 2}
+.w-m{grid-column:span 4;grid-row:span 2}
+.w-l{grid-column:span 4;grid-row:span 3;padding:0;cursor:default}
+.wh{display:flex;align-items:center;gap:6px;font:600 10.5px/1 var(--os);letter-spacing:.09em;text-transform:uppercase;color:var(--ink2);white-space:nowrap}
+.wh .mk{width:16px;height:16px;border-radius:5px}.wh .mk svg{width:11px;height:11px}
+.w .live{font-size:0;margin-left:auto}
+/* statut */
+.ws-v{display:flex;align-items:baseline;gap:5px;margin-top:12px}
+.ws-v b{font:750 62px/.8 var(--brand);letter-spacing:-.05em;font-variation-settings:"opsz" 96}
+.ws-v span{font:600 12px/1.1 var(--os);color:var(--ink2)}
+.spark{display:block;width:100%;height:26px;margin-top:8px;overflow:visible}
+.ws-st{position:absolute;left:14px;right:14px;bottom:12px;display:flex;align-items:center;gap:6px;font:600 11.5px/1 var(--os);color:var(--ink)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muat);flex:none}
+/* 44 % */
+.w-44{background:var(--grain),var(--kosong);color:var(--ink)}
+.w-44 .wh{color:rgba(26,23,18,.72)}
+.w-44 .wh .mk{background:var(--ink);color:var(--kosong)}
+.big44{display:flex;align-items:flex-start;margin-top:6px;font:800 80px/.78 var(--brand);letter-spacing:-.06em;font-variation-settings:"opsz" 96}
+.big44 sup{font-size:34px;line-height:1;margin:2px 0 0 3px;letter-spacing:0}
+.w44-s{font:700 13px/1.15 var(--os);margin-top:6px}
+.w44-bar{position:absolute;left:14px;right:14px;bottom:13px;height:6px;border-radius:8px;display:flex;gap:2px;overflow:hidden}
+.w44-bar i{display:block;height:100%;border-radius:3px}
+.w44-bar i:first-child{width:56%;background:rgba(26,23,18,.24)}
+.w44-bar i:last-child{flex:1;background:var(--ink)}
+.w44-f{margin-top:4px;font:600 10.5px/1 var(--os);color:rgba(26,23,18,.75)}
+/* trajet moyen */
+.w-m{display:grid;grid-template-columns:136px 1fr;gap:14px;padding:12px}
+.wm-map{position:relative;border-radius:16px;background:var(--paper2);overflow:hidden}
+.wm-map svg{position:absolute;inset:0;width:100%;height:100%}
+.wm-r{display:flex;flex-direction:column;min-width:0;padding:2px 2px 0 0}
+.wm-to{font:700 21px/1 var(--brand);letter-spacing:-.025em;margin-top:9px}
+.wm-to small{display:block;font:500 12px/1.2 var(--os);color:var(--ink2);letter-spacing:0;margin-top:3px}
+.wm-eta{display:flex;align-items:baseline;gap:6px;margin-top:auto}
+.wm-eta b{font:750 36px/.85 var(--brand);letter-spacing:-.045em}
+.wm-eta span{font:600 11px/1.1 var(--os);color:var(--ink3);text-transform:uppercase;letter-spacing:.08em}
+.wm-k{font:600 12.5px/1 var(--os);color:var(--ink2);margin-top:7px}
+.wm-k b{color:var(--ink);font-weight:700}
+.pbar{position:relative;height:5px;border-radius:5px;background:var(--paper3);margin-top:9px;overflow:hidden}
+.pbar i{position:absolute;inset:0 auto 0 0;background:var(--muat);border-radius:5px;transition:width .9s linear}
+/* journée large */
+.wl-main{display:block;width:100%;height:calc(100% - 44px);border:0;background:none;text-align:left;cursor:pointer;padding:14px 16px 0;color:var(--ink)}
+.wl-h{display:flex;align-items:center}
+.wl-h .tot{margin-left:auto;font:600 11.5px/1 var(--os);color:var(--ink2);letter-spacing:0;text-transform:none}
+.wl-h .tot b{color:var(--ink);font:700 13px var(--brand)}
+.wl-st{display:grid;grid-template-columns:1.15fr 1fr 1.1fr;gap:8px;margin-top:14px}
+.wl-st div{min-width:0}
+.wl-st label{display:flex;align-items:center;gap:5px;font:600 11px/1 var(--os);color:var(--ink2)}
+.sw{width:10px;height:10px;border-radius:3px;flex:none}
+.sw.m{background:var(--muat)}.sw.k{background:var(--hatch);box-shadow:inset 0 0 0 1.2px var(--kosong)}.sw.s{background:var(--stop)}
+.wl-st b{display:block;font:750 25px/1 var(--brand);letter-spacing:-.035em;margin-top:7px;white-space:nowrap}
+.wl-st b.z{color:var(--ink3)}
+.wl-st small{display:block;font:500 11px/1.25 var(--os);color:var(--ink2);margin-top:4px}
+.tl{position:relative;height:20px;margin-top:15px;border-radius:6px;background:rgba(26,23,18,.06)}
+.tl .sg{position:absolute;top:0;bottom:0;border-radius:4px;transition:width .9s linear,left .9s linear}
+.tl .sg.m{background:var(--muat)}.tl .sg.s{background:var(--stop)}.tl .sg.k{background:var(--hatch);box-shadow:inset 0 0 0 1.2px var(--kosong)}
+.tl .sg.p{opacity:.38}
+.tl .sg.p.m{background:repeating-linear-gradient(90deg,var(--muat) 0 5px,transparent 5px 8px)}
+.tl .now{position:absolute;top:-5px;bottom:-5px;width:2px;margin-left:-1px;background:var(--ink);border-radius:2px;transition:left .9s linear}
+.tl .now::after{content:"";position:absolute;left:-3px;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--ink)}
+.tl-ax{display:flex;justify-content:space-between;font:500 10.5px/1 var(--os);color:var(--ink3);margin-top:6px}
+.wl-n{display:flex;align-items:center;gap:6px;font:500 11.5px/1.2 var(--os);color:var(--ink2);margin-top:10px}
+.wl-n b{color:var(--kosong);font-weight:700}
+.wl-f{position:absolute;left:0;right:0;bottom:0;height:44px;border:0;border-top:1px solid rgba(26,23,18,.09);background:rgba(26,23,18,.035);display:flex;align-items:center;gap:8px;padding:0 16px;font:600 12.5px/1 var(--os);color:var(--ink2);cursor:pointer;text-align:left}
+.wl-f b{color:var(--ink)}
+.wl-f .chev{margin-left:auto;font-size:16px;color:var(--ink3)}
+/* icônes fictives */
+.ic{grid-column:span 1;display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;padding:0;cursor:default}
+.ic i{width:56px;height:56px;border-radius:19px;display:grid;place-items:center;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 8px 18px -8px rgba(0,0,0,.6)}
+.ic i svg{width:26px;height:26px}
+.ic span{font:500 11.5px/1 var(--os);color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+.ic.wig i{animation:wig .4s}
+@keyframes wig{25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+
+/* ---------- APLIKASI ---------- */
+.abar{position:absolute;z-index:40;top:48px;left:12px;right:12px;display:flex;align-items:center;gap:8px;transition:transform .45s var(--ease),opacity .3s}
+.back,.mctl button,.fs-x{border:0;cursor:pointer;background:var(--paper);color:var(--ink);box-shadow:0 6px 18px -6px rgba(26,23,18,.45),inset 0 0 0 1px rgba(26,23,18,.06)}
+.back{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex:none}
+.back svg{width:18px;height:18px}
+.seg{display:flex;padding:3px;border-radius:99px;background:rgba(244,239,229,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 6px 18px -6px rgba(26,23,18,.4),inset 0 0 0 1px rgba(26,23,18,.07)}
+.seg button{border:0;background:none;cursor:pointer;padding:10px 13px;border-radius:99px;font:600 13px/1 var(--os);color:var(--ink2);transition:background .3s,color .3s}
+.seg button[aria-current=true]{background:var(--ink);color:var(--paper)}
+.atop{position:absolute;z-index:35;inset:0 0 auto;height:112px;background:linear-gradient(var(--paper) 72%,rgba(244,239,229,0));pointer-events:none;opacity:0;transition:opacity .3s}
+#app:not([data-view=sekarang]) .atop{opacity:1}
+.view{position:absolute;inset:0;opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .35s,transform .45s var(--ease),visibility 0s .35s}
+#app[data-view=sekarang] .v-sek,#app[data-view=trajet] .v-tr,#app[data-view=laporan] .v-lap{opacity:1;visibility:inherit;transform:none;transition:opacity .35s,transform .45s var(--ease),visibility 0s}
+.scroll{overflow-y:auto;overscroll-behavior:contain;padding:110px 18px 110px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+/* sekarang */
+#map{position:absolute;inset:0;z-index:0;background:#E6E0D2}
+#map .leaflet-tile-pane{filter:grayscale(.88) sepia(.22) brightness(1.05) contrast(.9)}
+.v-sek::before{content:"";position:absolute;z-index:1;inset:0 0 auto;height:120px;background:linear-gradient(rgba(244,239,229,.92),rgba(244,239,229,0));pointer-events:none;transition:opacity .3s}
+.mctl{position:absolute;z-index:3;right:12px;top:104px;display:flex;flex-direction:column;gap:8px;transition:transform .45s var(--ease)}
+.mctl button{width:42px;height:42px;border-radius:14px;display:grid;place-items:center}
+.mctl svg{width:19px;height:19px}
+.sheet{position:absolute;z-index:4;left:0;right:0;bottom:0;padding:8px 20px 80px;border-radius:30px 30px 0 0;background:var(--grain),var(--paper);box-shadow:0 -14px 40px -10px rgba(26,23,18,.28);transition:transform .5s var(--ease)}
+.grab{display:block;position:relative;width:42px;height:5px;margin:2px auto 12px;border:0;border-radius:5px;background:rgba(26,23,18,.2);cursor:pointer}
+.grab::before{content:"";position:absolute;inset:-14px -100px -10px}
+.osm{position:absolute;right:14px;top:-24px;font:500 10px/1 var(--os);color:var(--ink2);background:rgba(244,239,229,.86);padding:4px 7px;border-radius:7px}
+.osm a{color:inherit}
+.sh-l{display:flex;align-items:center;gap:7px;font:600 11px/1 var(--os);letter-spacing:.09em;text-transform:uppercase;color:var(--ink3)}
+.conf{margin-left:auto;font:600 11px/1 var(--os);letter-spacing:0;text-transform:none;color:var(--muat);background:rgba(31,94,75,.1);padding:5px 8px;border-radius:99px}
+.sh-to{font:750 25px/1.05 var(--brand);letter-spacing:-.03em;margin-top:7px}
+.sh-row{display:flex;align-items:flex-end;justify-content:space-between;margin-top:14px}
+.sh-eta small,.sh-k small{display:block;font:600 11px/1 var(--os);letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.sh-eta b{font:750 52px/.82 var(--brand);letter-spacing:-.05em}
+.sh-eta b em{font-style:normal;font-weight:500;color:var(--ink3);font-size:32px}
+.sh-eta b span{font:600 13px var(--os);letter-spacing:0;color:var(--ink2);margin-left:4px}
+.sh-k{text-align:right}
+.sh-k b{display:block;font:700 22px/1 var(--brand);letter-spacing:-.025em}
+.sh-k b+b{margin-top:5px;font-size:15px;color:var(--ink2)}
+.sh-tr{margin-top:16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.chip{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:99px;background:rgba(26,23,18,.06);font:600 12px/1 var(--os);color:var(--ink)}
+.sh-id{margin-top:13px;font:500 12px/1.4 var(--os);color:var(--ink2)}
+.sh-id b{color:var(--ink)}
+.peek{position:absolute;left:20px;right:20px;top:22px;display:flex;align-items:baseline;gap:10px;opacity:0;pointer-events:none;transition:opacity .3s;font:600 13px/1 var(--os);color:var(--ink2)}
+.peek b{font:750 26px/1 var(--brand);letter-spacing:-.04em;color:var(--ink)}
+.peek span:last-child{margin-left:auto}
+#app.folded .sheet{transform:translateY(calc(100% - 136px))}
+#app.folded .sheet>:not(.grab):not(.peek):not(.osm){opacity:0;pointer-events:none}
+#app.folded .peek{opacity:1;pointer-events:auto}
+.sheet>*{transition:opacity .3s}
+#phone.solo .abar{transform:translateY(-130%);opacity:0}
+#phone.solo .sheet{transform:translateY(calc(100% + 20px))}
+#phone.solo .v-sek::before{opacity:0}
+#phone.solo .mctl{transform:translateY(-50px)}
+.fs-x{position:absolute;z-index:5;left:12px;top:52px;height:40px;padding:0 14px;border-radius:99px;display:flex;align-items:center;gap:7px;font:600 13px/1 var(--os);opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+.fs-x svg{width:16px;height:16px}
+.fs-attr{position:absolute;z-index:5;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));font:500 10px/1 var(--os);background:rgba(244,239,229,.86);padding:4px 7px;border-radius:7px;opacity:0;transition:opacity .3s}
+.fs-attr a{color:inherit}
+#phone.solo .fs-x{opacity:1;visibility:visible}
+#phone.solo .fs-attr{opacity:1}
+.tmk{position:relative}
+.tmk .pl{position:absolute;inset:0;border-radius:50%;background:rgba(31,94,75,.28);animation:pulse 2s infinite}
+.tmk .co{position:absolute;inset:8px;border-radius:12px;background:var(--muat);color:#fff;display:grid;place-items:center;box-shadow:0 0 0 3px #fff,0 6px 14px rgba(0,0,0,.35)}
+.tmk .co svg{width:20px;height:13px}
+@keyframes pulse{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.5);opacity:0}}
+.zmk{font:700 11px/1 var(--os);color:var(--ink);background:var(--paper);padding:5px 8px;border-radius:8px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.2);width:max-content}
+.zmk.stop{background:var(--ink);color:var(--paper)}
+/* trajet */
+.v-h{font:750 30px/1.02 var(--brand);letter-spacing:-.035em;margin:4px 0 0}
+.v-s{font:500 13.5px/1.35 var(--os);color:var(--ink2);margin:6px 0 0}
+.days{display:flex;gap:6px;margin-top:14px}
+.trips{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.trow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;width:100%;border:0;cursor:pointer;text-align:left;background:rgba(26,23,18,.045);border-radius:18px;padding:12px 14px;transition:background .25s,box-shadow .25s}
+.trow[aria-pressed=true]{background:#fff;box-shadow:0 8px 22px -12px rgba(26,23,18,.4),inset 0 0 0 1.5px var(--ink)}
+.trow .tt{font:700 13px/1.1 var(--brand);color:var(--ink2);text-align:center;min-width:42px}
+.trow .tt span{display:block;font-weight:500;color:var(--ink3);font-size:11.5px;margin-top:3px}
+.trow .rt{font:700 15px/1.2 var(--os);letter-spacing:-.01em}
+.trow .rt small{display:flex;align-items:center;gap:6px;margin-top:4px;font:500 12px/1 var(--os);color:var(--ink2)}
+.trow .km{font:750 18px/1 var(--brand);letter-spacing:-.03em}
+.nodo{color:var(--kosong);font-weight:700}
+.card{margin-top:14px;background:#fff;border-radius:24px;padding:16px;box-shadow:0 10px 30px -18px rgba(26,23,18,.5)}
+.td{transition:opacity .25s}
+.td.swap{opacity:0}
+.td-map{position:relative;height:186px;border-radius:16px;background:var(--paper2);overflow:hidden}
+.td-map svg{width:100%;height:100%;display:block}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;margin-top:16px}
+.kpi small{display:block;font:600 10.5px/1 var(--os);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.kpi b{display:block;font:750 23px/1 var(--brand);letter-spacing:-.03em;margin-top:6px}
+.kpi b.red{color:var(--kosong)}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin:20px 0 8px;font:700 13px/1 var(--os)}
+.sec span{font-weight:500;color:var(--ink3);font-size:12px}
+.prof{position:relative;touch-action:pan-y}
+.prof svg{width:100%;height:132px;display:block;overflow:visible}
+.ptip{position:absolute;top:-6px;padding:5px 8px;border-radius:8px;background:var(--ink);color:var(--paper);font:600 11.5px/1 var(--os);white-space:nowrap;transform:translateX(-50%);pointer-events:none;opacity:0;transition:opacity .15s}
+.do{display:flex;align-items:center;gap:10px;margin-top:16px;padding:12px 14px;border-radius:16px;background:rgba(31,94,75,.08)}
+.do.none{background:rgba(232,98,44,.1)}
+.do b{font:700 14px/1.2 var(--os)}
+.do small{display:block;font:500 12px/1.3 var(--os);color:var(--ink2)}
+.do button{margin-left:auto;border:0;border-radius:99px;padding:8px 12px;background:var(--ink);color:var(--paper);font:600 12px/1 var(--os);cursor:pointer}
+.cost{margin-top:12px}
+.cost-r{display:flex;justify-content:space-between;align-items:baseline;font:500 13px/1 var(--os);color:var(--ink2);padding:6px 0}
+.cost-r b{font:700 14px var(--brand);color:var(--ink)}
+.cost-r.t{border-top:1px solid rgba(26,23,18,.1);margin-top:4px;padding-top:10px;color:var(--ink);font-weight:700}
+.cost-r.t b{font-size:20px;letter-spacing:-.02em}
+.cbar{display:flex;gap:3px;height:8px;margin:6px 0 2px}
+.cbar i{border-radius:4px;background:var(--ink)}.cbar i+i{background:var(--warn)}
+/* laporan */
+.hero{position:relative;margin-top:14px;border-radius:28px;padding:18px 18px 16px;background:var(--grain),var(--kosong);color:var(--ink);overflow:hidden}
+.hero .wh{color:rgba(26,23,18,.75)}
+.hero-n{display:flex;align-items:flex-start;font:800 128px/.8 var(--brand);letter-spacing:-.065em;margin-top:14px;font-variation-settings:"opsz" 96}
+.hero-n sup{font-size:48px;line-height:1;margin:6px 0 0 4px;letter-spacing:0}
+.hero p{font:600 15px/1.3 var(--os);margin:10px 0 0;max-width:260px}
+.hero .w44-bar{position:static;margin-top:14px;height:10px}
+.hero-f{display:flex;justify-content:space-between;font:600 11.5px/1 var(--os);color:rgba(26,23,18,.75);margin-top:8px}
+.st3{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.st3-r{display:grid;grid-template-columns:14px 1fr auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(26,23,18,.08)}
+.st3-r b{font:700 15px/1.2 var(--os)}
+.st3-r small{display:block;font:500 12px/1.3 var(--os);color:var(--ink2);margin-top:2px}
+.st3-r em{font:750 22px/1 var(--brand);font-style:normal;letter-spacing:-.03em;text-align:right}
+.st3-r em span{display:block;font:500 12px var(--os);color:var(--ink2);letter-spacing:0;margin-top:3px}
+.hbar{display:flex;height:14px;gap:3px;margin-top:8px}
+.hbar i{border-radius:5px}
+.days30{display:flex;align-items:flex-end;gap:3px;height:74px;margin-top:6px}
+.days30 div{flex:1;display:flex;flex-direction:column-reverse;gap:1.5px;height:100%;justify-content:flex-start}
+.days30 i{display:block;border-radius:2px;background:var(--muat)}
+.days30 i+i{background:var(--hatch);box-shadow:inset 0 0 0 1px var(--kosong)}
+.ax30{display:flex;justify-content:space-between;font:500 10.5px/1 var(--os);color:var(--ink3);margin-top:6px}
+.g4{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.g4>*{border:0;text-align:left;background:rgba(26,23,18,.045);border-radius:18px;padding:13px 14px;font:inherit;color:var(--ink)}
+.g4 small{display:block;font:600 10.5px/1 var(--os);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.g4 b{display:block;font:750 24px/1 var(--brand);letter-spacing:-.03em;margin-top:7px}
+.g4 span{display:block;font:500 12px/1.2 var(--os);color:var(--ink2);margin-top:4px}
+.g4 button{cursor:pointer;background:rgba(232,98,44,.12);box-shadow:inset 0 0 0 1.5px rgba(232,98,44,.5)}
+.g4 button b{color:var(--kosong)}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important;transition-delay:0s!important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-truck" viewBox="0 0 34 21"><path fill="currentColor" d="M1.5 3.5h17.2l-2.4 9.6H4z"/><path fill="currentColor" d="M19.6 6.4h5.9l4.6 5v3.2H19.6z"/><path fill="var(--paper)" d="M21.3 8h3.5l2.6 3h-6.1z" opacity=".9"/><rect fill="currentColor" x=".8" y="13.4" width="30.5" height="2.4" rx="1.2"/><circle cx="7.4" cy="16.6" r="3" fill="currentColor" stroke="var(--paper)" stroke-width="1.4"/><circle cx="25.4" cy="16.6" r="3" fill="currentColor" stroke="var(--paper)" stroke-width="1.4"/></symbol>
+  <symbol id="i-mk" viewBox="0 0 24 24"><path fill="currentColor" d="M3 7.6 16.4 5l2.4 8.6H5.2z"/><circle cx="7.6" cy="17.6" r="2.4" fill="currentColor"/><circle cx="16.4" cy="17.6" r="2.4" fill="currentColor"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 12 14"><rect x="1" y="6" width="10" height="7.5" rx="2.2" fill="currentColor"/><path d="M3.3 6.2V4.4a2.7 2.7 0 0 1 5.4 0v1.8" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  <symbol id="i-up" viewBox="0 0 12 12"><path d="M2 8l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-back" viewBox="0 0 18 18"><path d="M11 3.5 5.5 9l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-full" viewBox="0 0 20 20"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-shrink" viewBox="0 0 20 20"><path d="M8 3v5H3M17 8h-5V3M12 17v-5h5M3 12h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-tgt" viewBox="0 0 20 20"><circle cx="10" cy="10" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="1.8" fill="currentColor"/><path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-route" viewBox="0 0 20 20"><circle cx="4.5" cy="15.5" r="2.2" fill="none" stroke="currentColor" stroke-width="1.9"/><rect x="13.3" y="2.3" width="4.4" height="4.4" rx="1" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M6.5 14c4-1 1.5-5.5 4.5-7.2 1-.6 2-.8 2.3-.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-dasharray="2 3"/></symbol>
+</svg>
+
+<div id="phone" data-scene="kunci">
+  <div class="wall" id="wall" aria-hidden="true"></div>
+  <div class="wall-dim" aria-hidden="true"></div>
+
+  <div class="sb" aria-hidden="false">
+    <span class="sb-t num" id="sb-t">11:15</span>
+    <button class="sb-live" id="sb-live" data-open="sekarang" aria-label="Truk dalam perjalanan, buka detail">
+      <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="none" stroke="rgba(26,23,18,.15)" stroke-width="3"/><circle id="sb-ring" cx="10" cy="10" r="7.5" fill="none" stroke="var(--muat)" stroke-width="3" stroke-linecap="round" stroke-dasharray="47.1" stroke-dashoffset="13" transform="rotate(-90 10 10)"/></svg>
+      <span class="num" id="sb-km">63 km</span>
+    </button>
+    <i class="sb-cam" aria-hidden="true"></i>
+    <span class="sb-r" aria-label="Sinyal 4G, baterai 76 persen"><span class="sig"><i></i><i></i><i></i><i></i></span>4G<span class="bat">76</span></span>
+  </div>
+
+  <!-- ================= KUNCI ================= -->
+  <section class="scene" id="lock" aria-label="Layar kunci">
+    <div class="lk-top">
+      <div class="lk-date"><svg><use href="#i-lock"/></svg>Rabu, 18 November</div>
+      <div class="lk-clock num" id="lk-clock">11:15</div>
+    </div>
+
+    <button class="la" id="la" data-open="sekarang" aria-label="Aktivitas langsung Muatku: truk dalam perjalanan ke PT RAPP">
+      <div class="la-h"><span class="mk"><svg><use href="#i-mk"/></svg></span><b>Muatku</b> · <span id="la-st">Dalam perjalanan</span><span class="live"><i></i>LIVE</span></div>
+      <div class="la-m">
+        <div><small>Tiba di PT RAPP</small><div class="la-eta num"><em>±</em><span id="la-eta">12:34</span></div></div>
+        <div class="la-km num"><span id="la-km">63</span><span>km lagi</span></div>
+      </div>
+      <div class="trk" aria-hidden="true"><div class="rail"></div><div class="done" id="la-done"></div><i class="end a"></i><i class="end b"></i><span class="tk" id="la-tk"><svg><use href="#i-truck"/></svg></span></div>
+      <div class="la-ends"><span>Batu Ampar · 07:15</span><span>Power Station</span></div>
+      <div class="la-f"><b class="num" id="la-v">48 km/jam</b>· bermuatan · mesin nyala<span class="upd" id="la-upd">baru saja</span></div>
+    </button>
+
+    <div class="nf-h"><span id="nf-count">Notifikasi</span><button id="nf-toggle" aria-expanded="false">Tampilkan semua</button></div>
+    <div class="stack" id="stack" role="list" aria-label="Notifikasi Muatku"></div>
+    <div class="nf-empty" id="nf-empty">Tidak ada notifikasi · <button id="nf-restore">Pulihkan</button></div>
+
+    <button class="unlock" id="unlock"><i><svg><use href="#i-up"/></svg></i>Geser ke atas untuk membuka</button>
+  </section>
+
+  <!-- ================= LAYAR UTAMA ================= -->
+  <section class="scene" id="home" aria-label="Layar utama">
+    <div class="grid">
+      <button class="w w-s" id="w-status" data-open="sekarang" aria-label="Status truk: buka posisi langsung">
+        <div class="wh"><span class="mk"><svg><use href="#i-mk"/></svg></span>BM 8921 KU<span class="live"><i></i></span></div>
+        <div class="ws-v"><b class="num" id="ws-v">48</b><span>km/<br>jam</span></div>
+        <svg class="spark" id="ws-spark" viewBox="0 0 140 26" preserveAspectRatio="none"></svg>
+        <div class="ws-st"><span class="dot" id="ws-dot"></span><span id="ws-st">Bermuatan · nyala</span></div>
+      </button>
+      <button class="w w-s w-44" id="w-44" data-open="laporan" aria-label="44 persen jalan kosong dalam 30 hari: buka laporan">
+        <div class="wh"><span class="mk"><svg><use href="#i-mk"/></svg></span>30 hari</div>
+        <div class="big44 num">44<sup>%</sup></div>
+        <div class="w44-s">jalan kosong</div>
+        <div class="w44-bar"><i></i><i></i></div>
+        <div class="w44-f num">2.778 dari 6.296 km</div>
+      </button>
+      <button class="w w-m" id="w-trip" data-open="sekarang" aria-label="Perjalanan ke PT RAPP: buka peta">
+        <div class="wm-map"><svg id="wm-svg" viewBox="0 0 136 136" aria-hidden="true"></svg></div>
+        <div class="wm-r">
+          <div class="wh">Menuju<span class="live"><i></i></span></div>
+          <div class="wm-to">PT RAPP<small>Power Station</small></div>
+          <div class="wm-eta"><span>tiba ±</span><b class="num" id="wm-eta">12:34</b></div>
+          <div class="wm-k num"><b id="wm-km">63</b> km lagi · <b id="wm-v">48</b> km/jam</div>
+          <div class="pbar"><i id="wm-p" style="width:72%"></i></div>
+        </div>
+      </button>
+      <button class="ic" data-ic aria-label="Pesan (aplikasi contoh)"><i style="background:linear-gradient(160deg,#7F8C70,#5D6A50)"><svg viewBox="0 0 26 26"><path d="M5 6.5h16a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 21 18H11l-4.5 3.5V18H5a1.5 1.5 0 0 1-1.5-1.5V8A1.5 1.5 0 0 1 5 6.5z" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></i><span>Pesan</span></button>
+      <button class="ic" data-ic aria-label="Kamera (aplikasi contoh)"><i style="background:linear-gradient(160deg,#5E6778,#424A5A)"><svg viewBox="0 0 26 26"><rect x="3.5" y="7.5" width="19" height="13" rx="3" fill="none" stroke="#fff" stroke-width="2"/><circle cx="13" cy="14" r="3.6" fill="none" stroke="#fff" stroke-width="2"/><path d="M9 7.5l1.5-2.5h5L17 7.5" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></i><span>Kamera</span></button>
+      <button class="ic" data-ic aria-label="Cuaca (aplikasi contoh)"><i style="background:linear-gradient(160deg,#D29A57,#B07436)"><svg viewBox="0 0 26 26"><circle cx="10" cy="10" r="4" fill="none" stroke="#fff" stroke-width="2"/><path d="M10 2.5v1.6M3.5 10H2M4.6 4.6l1.1 1.1M15.4 4.6l-1.1 1.1" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M9.5 21h10a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.2 1.4A2.8 2.8 0 0 0 9.5 21z" fill="#B07436" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg></i><span>Cuaca</span></button>
+      <button class="ic" data-ic aria-label="Catatan (aplikasi contoh)"><i style="background:linear-gradient(160deg,#8C6A86,#6A4C66)"><svg viewBox="0 0 26 26"><rect x="5.5" y="3.5" width="15" height="19" rx="3" fill="none" stroke="#fff" stroke-width="2"/><path d="M9 9h8M9 13h8M9 17h5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></i><span>Catatan</span></button>
+      <div class="w w-l" id="w-day" role="group" aria-label="Hari ini">
+        <button class="wl-main" id="wl-main" data-open="sekarang" aria-label="Hari ini: bermuatan, kosong, berhenti. Buka posisi">
+          <div class="wh wl-h"><span class="mk"><svg><use href="#i-mk"/></svg></span>Hari ini · Rabu 18 Nov<span class="tot"><b class="num" id="wl-tr">1</b> trajet · <b class="num" id="wl-km">162</b> km</span></div>
+          <div class="wl-st">
+            <div><label><i class="sw m"></i>Bermuatan</label><b class="num" id="wl-m">3j 39m</b><small id="wl-mk">162 km</small></div>
+            <div><label><i class="sw k"></i>Kosong</label><b class="num z">0 j</b><small>0 km · bagus</small></div>
+            <div><label><i class="sw s"></i>Berhenti</label><b class="num">1j 36m</b><small>zona 1j 15m · jalan 21m</small></div>
+          </div>
+          <div class="tl" id="tl" aria-hidden="true"></div>
+          <div class="tl-ax"><span>06</span><span>09</span><span>12</span><span>15</span><span>18</span></div>
+          <div class="wl-n"><i class="sw k"></i><span>Perkiraan: <b>pulang kosong ±225 km</b> setelah bongkar</span></div>
+        </button>
+        <button class="wl-f" data-open="trajet" data-trip="t1"><span class="mk" style="background:var(--paper3);color:var(--ink)"><svg><use href="#i-mk"/></svg></span>Kemarin · <b>2 trajet · 412 km</b> · 1 tanpa DO<span class="chev">›</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= APLIKASI ================= -->
+  <section class="scene" id="app" data-view="sekarang" aria-label="Aplikasi Muatku">
+    <div class="atop"></div>
+    <div class="abar">
+      <button class="back" id="back" aria-label="Kembali ke layar utama"><svg><use href="#i-back"/></svg></button>
+      <nav class="seg" aria-label="Bagian aplikasi">
+        <button data-v="sekarang" aria-current="true">Sekarang</button><button data-v="trajet">Trajet</button><button data-v="laporan">30 hari</button>
+      </nav>
+    </div>
+
+    <div class="view v-sek">
+      <div id="map" aria-label="Peta posisi truk"></div>
+      <div class="mctl">
+        <button id="m-full" aria-label="Peta layar penuh"><svg><use href="#i-full"/></svg></button>
+        <button id="m-truck" aria-label="Pusatkan truk"><svg><use href="#i-tgt"/></svg></button>
+        <button id="m-route" aria-label="Lihat seluruh rute"><svg><use href="#i-route"/></svg></button>
+      </div>
+      <button class="fs-x" id="fs-x" aria-label="Keluar dari peta penuh"><svg><use href="#i-shrink"/></svg>Keluar</button>
+      <div class="fs-attr">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></div>
+      <div class="sheet" id="sheet">
+        <span class="osm">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span>
+        <button class="grab" id="grab" aria-label="Lipat panel" aria-expanded="true"></button>
+        <div class="peek"><b class="num" id="pk-eta">±12:34</b><span>PT RAPP</span><span class="num" id="pk-km">63 km lagi</span></div>
+        <div class="sh-l">Kemungkinan menuju<span class="conf">Keyakinan tinggi</span></div>
+        <div class="sh-to">PT RAPP — Power Station</div>
+        <div class="sh-row">
+          <div class="sh-eta"><small>Perkiraan tiba</small><b class="num"><em>±</em><span id="sh-eta" style="font:inherit;color:inherit;margin:0">12:34</span><span>WIB</span></b></div>
+          <div class="sh-k"><small>Sisa</small><b class="num"><span id="sh-km">63</span> km</b><b class="num"><span id="sh-v">48</span> km/jam</b></div>
+        </div>
+        <div class="sh-tr">
+          <div class="trk" aria-hidden="true"><div class="rail"></div><div class="done" id="sh-done"></div><i class="end a"></i><i class="end b"></i><span class="tk" id="sh-tk"><svg><use href="#i-truck"/></svg></span></div>
+          <div class="la-ends"><span>Dari Stockpile Batu Ampar · 07:15</span><span id="sh-pct">72 %</span></div>
+        </div>
+        <div class="chips"><span class="chip"><i class="dot"></i>Mesin nyala</span><span class="chip">Bermuatan</span><span class="chip num">Hari ini · 1 trajet · <b id="sh-today">162</b> km</span></div>
+        <div class="sh-id"><b>Dump Truck 01</b> · BM 8921 KU · Hino FM 260 JD</div>
+      </div>
+    </div>
+
+    <div class="view v-tr scroll" id="v-tr">
+      <h1 class="v-h">Selasa, 17 November</h1>
+      <p class="v-s">2 trajet · 412 km · Dump Truck 01</p>
+      <ol class="trips" id="trips"></ol>
+      <article class="card td" id="td"></article>
+    </div>
+
+    <div class="view v-lap scroll" id="v-lap">
+      <h1 class="v-h">30 hari terakhir</h1>
+      <p class="v-s">19 Okt – 17 Nov · Dump Truck 01</p>
+      <div class="hero">
+        <div class="wh"><span class="mk" style="background:var(--ink);color:var(--kosong)"><svg><use href="#i-mk"/></svg></span>Angka utama</div>
+        <div class="hero-n num">44<sup>%</sup></div>
+        <p>dari semua km ditempuh <b>tanpa muatan</b>. Satu muatan balik per minggu menurunkannya ke ±35 %.</p>
+        <div class="w44-bar"><i></i><i></i></div>
+        <div class="hero-f"><span>2.778 km kosong</span><span>6.296 km total</span></div>
+      </div>
+      <div class="sec">Waktu truk<span>229 jam tercatat</span></div>
+      <div class="hbar"><i style="flex:69;background:var(--muat)"></i><i style="flex:63;background:var(--hatch);box-shadow:inset 0 0 0 1.2px var(--kosong)"></i><i style="flex:97;background:var(--stop)"></i></div>
+      <div class="st3">
+        <div class="st3-r"><i class="sw m"></i><div><b>Bermuatan</b><small>jalan dengan muatan</small></div><em class="num">69 j<span>3.025 km</span></em></div>
+        <div class="st3-r"><i class="sw k"></i><div><b>Kosong</b><small>jalan tanpa muatan</small></div><em class="num" style="color:var(--kosong)">63 j<span>2.778 km</span></em></div>
+        <div class="st3-r"><i class="sw s"></i><div><b>Berhenti</b><small>79 j di zona · 17 j 30 di jalan</small></div><em class="num">97 j<span>&nbsp;</span></em></div>
+      </div>
+      <div class="sec">Km per hari<span>bermuatan / kosong</span></div>
+      <div class="days30" id="days30" aria-hidden="true"></div>
+      <div class="ax30"><span>19 Okt</span><span>1 Nov</span><span>17 Nov</span></div>
+      <div class="sec">Ringkasan</div>
+      <div class="g4">
+        <div><small>Jarak</small><b class="num">6.296 km</b><span>67 trajet</span></div>
+        <div><small>Ritase</small><b class="num">30</b><span>bongkar selesai</span></div>
+        <div><small>Biaya</small><b class="num">Rp 20,2 jt</b><span>≈ Rp 3.200 / km</span></div>
+        <button id="g-nodo" data-open="trajet" data-trip="t2"><small>Tanpa DO</small><b class="num">2 trajet</b><span>Tautkan sekarang ›</span></button>
+      </div>
+    </div>
+    <div class="cover" aria-hidden="true"></div>
+  </section>
+
+  <nav class="dtab" aria-label="Navigasi maket">
+    <span class="tag">N</span>
+    <button data-s="kunci" aria-current="true">Kunci</button><button data-s="layar">Layar utama</button><button data-s="aplikasi">Aplikasi</button>
+  </nav>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="route.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
