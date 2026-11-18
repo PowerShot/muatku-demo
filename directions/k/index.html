@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#05080f">
 <link rel="icon" href="data:,">
@@ -59,7 +62,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .sheet{position:absolute;left:0;right:0;bottom:var(--tabH);border-radius:24px 24px 0 0;background:linear-gradient(180deg,rgba(11,15,26,.86),rgba(6,9,16,.97) 120px);backdrop-filter:blur(18px) saturate(1.15);-webkit-backdrop-filter:blur(18px) saturate(1.15);border-top:1px solid var(--line2);box-shadow:0 -20px 50px rgba(0,0,0,.45);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:8px 18px 22px;transform:translateY(16px);transition:transform .45s cubic-bezier(.2,.8,.2,1)}
 .screen.on .sheet{transform:none}
 .sheet::-webkit-scrollbar{display:none}
-.grab{width:38px;height:4px;border-radius:4px;background:var(--line2);margin:0 auto 12px}
+.grab{display:block;position:relative;width:44px;height:5px;border-radius:5px;background:rgba(214,226,255,.34);margin:0 auto 12px;touch-action:none}
+.grab::before{content:"";position:absolute;inset:-12px -90px -10px}
 .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
 .hr{height:1px;background:var(--line);margin:11px 0}
 .pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:99px;font-size:11px;font-weight:700;border:1px solid var(--line2);white-space:nowrap}
@@ -186,6 +190,42 @@ input[type=range]::-moz-range-thumb{width:6px;height:30px;border:0;border-radius
 #fallback.on{display:block}
 #fallback p{font-size:12px;color:var(--mute);margin-bottom:8px}
 #fallback svg{width:100%;height:calc(100% - 30px)}
+/* ---------- panneau repliable ---------- */
+.sheet>*{transition:opacity .3s}
+.peek{position:absolute;left:0;right:0;top:15px;height:40px;padding:0 18px;display:flex;align-items:center;gap:9px;font-size:13px;text-align:left;opacity:0;visibility:hidden;touch-action:none;transition:opacity .3s,visibility .3s}
+.peek .pk-d{width:7px;height:7px;border-radius:50%;flex:none}
+.peek .pk-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.peek .pk-v{font:600 11.5px var(--mono);color:var(--mute);white-space:nowrap}
+.peek svg,.fs-exit svg{width:16px;height:16px;flex:none}
+.peek svg{color:var(--mute)}
+#app.folded .sheet{transform:translateY(calc(100% - 58px));overflow:hidden}
+#app.folded .sheet>:not(.grab):not(.peek){opacity:0;pointer-events:none}
+#app.folded .peek{opacity:1;visibility:visible}
+.lap-lg{transition:bottom .45s cubic-bezier(.2,.8,.2,1)}
+#app.folded .lap-lg{bottom:calc(var(--tabH) + 70px)}
+/* ---------- carte seule ---------- */
+.top,.tabs,.veil{transition:transform .4s cubic-bezier(.2,.8,.2,1),opacity .3s}
+#app.solo{height:100dvh}
+#app:fullscreen{border-radius:0}
+#app.solo .top{transform:translateY(-100%);opacity:0}
+#app.solo .veil{opacity:0}
+#app.solo .tabs{transform:translateY(100%)}
+#app.solo .sheet{transform:translateY(calc(100% + var(--tabH) + 40px))}
+#app.solo .lap-lg{bottom:calc(env(safe-area-inset-bottom) + 88px)}
+.ctrl .fs{margin-top:5px;color:var(--moon);border-color:rgba(243,233,210,.4)}
+#app.solo .ctrl .fs{display:none}
+.fs-exit{position:absolute;z-index:9;left:12px;top:calc(10px + env(safe-area-inset-top));height:40px;padding:0 14px 0 12px;display:flex;align-items:center;gap:7px;border-radius:99px;background:rgba(10,14,24,.5);border:1px solid var(--line2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:12px;font-weight:700}
+.fs-exit,.mini{opacity:0;visibility:hidden;transform:translateY(-8px);transition:opacity .3s,transform .35s,visibility .3s}
+#app.solo .fs-exit,#app.solo[data-cur=laporan] .m-lap,#app.solo[data-cur=riwayat] .m-riw{opacity:1;visibility:visible;transform:none}
+.mini{position:absolute;z-index:6;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;padding:8px 14px 6px 8px;border-radius:18px;background:rgba(8,12,20,.62);border:1px solid var(--line2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transform:translateY(12px)}
+.m-riw{padding-left:14px}
+.mini .play{width:40px;height:40px}
+.mini .m-c{flex:1;min-width:0}
+.mini .m-lab{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden}
+.mini .m-lab b{color:var(--text)}
+.mini input[type=range]{height:24px}
+.mini input[type=range]::-webkit-slider-runnable-track{height:14px}
+.mini input[type=range]::-webkit-slider-thumb{height:24px;margin-top:-5px}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -205,12 +245,15 @@ input[type=range]::-moz-range-thumb{width:6px;height:30px;border:0;border-radius
     <button id="c-right" aria-label="Putar kanan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4h-4"/></svg></button>
     <button id="c-tilt" aria-label="Ubah kemiringan">2D</button>
     <button id="c-home" aria-label="Kembali ke tampilan awal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+    <button id="c-fs" class="fs" aria-label="Peta layar penuh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   </div>
+  <button class="fs-exit" id="fs-exit" aria-label="Keluar dari peta penuh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>Keluar</button>
 
   <!-- POSISI -->
   <section class="screen on" id="s-posisi" aria-label="Posisi">
     <div class="sheet">
-      <div class="grab"></div>
+      <button class="grab" aria-label="Lipat panel" aria-expanded="true"></button>
+      <button class="peek"><i class="pk-d" style="background:var(--amber)"></i><span class="pk-t">PT RAPP — Power Station</span><span class="pk-v">ETA ±12:34</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
       <div class="truck-id">
         <div><h2>Dump Truck 01</h2><p class="mono">BM 8921 KU · Hino FM 260 JD</p></div>
         <span class="pill engine"><span class="d"></span>Mesin nyala</span>
@@ -238,7 +281,8 @@ input[type=range]::-moz-range-thumb{width:6px;height:30px;border:0;border-radius
   <!-- RIWAYAT -->
   <section class="screen" id="s-riwayat" aria-label="Riwayat">
     <div class="sheet">
-      <div class="grab"></div>
+      <button class="grab" aria-label="Lipat panel" aria-expanded="true"></button>
+      <button class="peek"><i class="pk-d" id="pk-rd"></i><span class="pk-t" id="pk-r">—</span><span class="pk-v" id="pk-rv"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
       <div class="daynav"><button id="d-prev" aria-label="Hari sebelumnya"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg></button><div class="dn-t"><b id="dn-date">—</b><span id="dn-sub">—</span></div><button id="d-next" aria-label="Hari berikutnya"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5l7 7-7 7"/></svg></button></div>
       <div class="legs" id="legs"></div>
       <div id="det"></div>
@@ -256,7 +300,8 @@ input[type=range]::-moz-range-thumb{width:6px;height:30px;border:0;border-radius
       <span><i class="sw-col" style="background:var(--rose);opacity:.75"></i>Jam di zona</span>
     </div>
     <div class="sheet">
-      <div class="grab"></div>
+      <button class="grab" aria-label="Lipat panel" aria-expanded="true"></button>
+      <button class="peek"><i class="pk-d" style="background:var(--ice)"></i><span class="pk-t"><b id="pk-l" style="color:var(--ice)">44 %</b> kosong</span><span class="pk-v" id="pk-ld">18 Nov</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
       <div class="player">
         <button class="play" id="play" aria-label="Putar"><svg viewBox="0 0 24 24" fill="currentColor" id="play-ic"><path d="M7 4.5v15l13-7.5z"/></svg></button>
         <div class="scrub"><div class="scrub-top"><span>Ulang 30 hari · <b>20 Okt – 18 Nov</b></span><span id="spd">≈ 20 dtk</span></div><input type="range" id="tl" min="0" max="1000" value="0" aria-label="Garis waktu 30 hari"></div>
@@ -285,6 +330,10 @@ input[type=range]::-moz-range-thumb{width:6px;height:30px;border:0;border-radius
       </div>
     </div>
   </section>
+
+  <!-- contrôles compacts du mode carte seule -->
+  <div class="mini m-lap" aria-label="Kontrol ringkas"><button class="play" id="m-play" aria-label="Putar"><svg viewBox="0 0 24 24" fill="currentColor" id="m-play-ic"><path d="M7 4.5v15l13-7.5z"/></svg></button><div class="m-c"><div class="m-lab"><span><b id="m-pct">44%</b> kosong</span><span id="m-day">20 Okt</span></div><input type="range" id="tl-m" min="0" max="1000" value="0" aria-label="Garis waktu 30 hari"></div></div>
+  <div class="mini m-riw" aria-label="Kontrol ringkas"><div class="m-c"><div class="m-lab"><b id="m-trip">—</b><span id="m-read">—</span></div><input type="range" id="sc-m" min="0" max="1000" value="0" aria-label="Geser untuk memutar ulang trajet"></div></div>
 
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" aria-selected="true" data-go="posisi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>Posisi</button>

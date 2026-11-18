@@ -215,8 +215,9 @@ function renderRiwayat() {
   if (map && cur === 'riwayat') overlay.setProps({ layers: selLeg >= 0 ? riwayatLayers() : [netLayer()] });
 }
 function renderDetail() {
-  const el = $('#det'); if (selLeg < 0) { el.innerHTML = ''; return; }
+  const el = $('#det'); if (selLeg < 0) { el.innerHTML = ''; $('#pk-r').textContent = $('#m-trip').textContent = 'Truk parkir'; $('#pk-rv').textContent = $('#m-read').textContent = ''; $('#sc-m').disabled = true; return; }
   const i = selLeg, l = D.legs[i], g = G[i], tm = legTimes(i), cls = l.s;
+  $('#pk-r').textContent = $('#m-trip').textContent = `${Z[l.a].short} → ${Z[l.b].short}`; $('#pk-rv').textContent = `${tm.a}–${tm.b}`; $('#pk-rd').style.background = `rgb(${C[l.s].join(',')})`; $('#sc-m').disabled = false;
   const vmax = Math.max(...g.vseg), stopMin = g.stops.reduce((a, s) => a + s.m, 0);
   if (scrubT == null) scrubT = g.t0 + (i === LIVE ? (T_NOW - g.t0) : (g.t1 - g.t0) * .58);
   const doPill = l.s === 'L' ? (l.do ? `<span class="pill">${l.do} · dibuat oleh ${l.by}</span>` : `<span class="pill warn">Tanpa DO</span>`) : '';
@@ -263,6 +264,7 @@ function updateCursor() {
   l.setAttribute('x1', x); l.setAttribute('x2', x); d.setAttribute('cx', x); d.setAttribute('cy', 100 - s.v / 90 * 94);
   $('#ch-read').textContent = `${clock(scrubT)} · km ${Math.round(s.km)} · ${s.v ? s.v + ' km/jam' : 'berhenti'}`;
   const ch = $('#chart'); ch.setAttribute('aria-valuenow', Math.round((scrubT - g.t0) / (g.t1 - g.t0) * 100));
+  $('#m-read').textContent = $('#ch-read').textContent; const m = $('#sc-m'); if (document.activeElement !== m) m.value = Math.round((scrubT - g.t0) / (g.t1 - g.t0) * 1000);
 }
 let scrubPending = false;
 function setScrub(f) {
@@ -323,12 +325,14 @@ function renderLap() {
     if (tot > 0) { $('#sk-l').style.flexBasis = km.L / tot * 100 + '%'; $('#sk-e').style.flexBasis = km.E / tot * 100 + '%'; $('#sk-o').style.flexBasis = km.O / tot * 100 + '%'; } }
   const P = (t / TEND * 100).toFixed(2), tl = $('#tl');
   if (document.activeElement !== tl || playing) tl.value = Math.round(t / TEND * 1000);
-  tl.style.setProperty('--trk', `repeating-linear-gradient(90deg,transparent 0 calc(3.3333% - 1px),rgba(5,8,15,.85) calc(3.3333% - 1px) 3.3333%),linear-gradient(90deg,rgba(243,233,210,.42) ${P}%,rgba(243,233,210,.09) ${P}%)`);
+  const tm = $('#tl-m'); if (document.activeElement !== tm || playing) tm.value = Math.round(t / TEND * 1000);
+  const pc = (ui.pct == null ? '—' : ui.pct) + ' %'; set('#pk-l', 'pk', pc); set('#m-pct', 'mpct', pc); set('#pk-ld', 'pkd', ui.day); set('#m-day', 'mday', ui.day);
+  [tl, tm].forEach(r => r.style.setProperty('--trk', `repeating-linear-gradient(90deg,transparent 0 calc(3.3333% - 1px),rgba(5,8,15,.85) calc(3.3333% - 1px) 3.3333%),linear-gradient(90deg,rgba(243,233,210,.42) ${P}%,rgba(243,233,210,.09) ${P}%)`));
 }
 function setPlaying(p) {
   playing = p; stopRaf();
-  $('#play-ic').innerHTML = p ? '<path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/>' : (lapT >= TEND - 1 ? '<path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/>' : '<path d="M7 4.5v15l13-7.5z"/>');
-  $('#play').setAttribute('aria-label', p ? 'Jeda' : 'Putar');
+  $('#play-ic').innerHTML = $('#m-play-ic').innerHTML = p ? '<path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z"/>' : (lapT >= TEND - 1 ? '<path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/>' : '<path d="M7 4.5v15l13-7.5z"/>');
+  $('#play').setAttribute('aria-label', p ? 'Jeda' : 'Putar'); $('#m-play').setAttribute('aria-label', p ? 'Jeda' : 'Putar');
   if (p) { lastTs = performance.now(); raf = requestAnimationFrame(lapFrame); }
 }
 function lapFrame(now) {
@@ -341,6 +345,9 @@ function lapFrame(now) {
 $('#play').onclick = () => { if (playing) return setPlaying(false); if (lapT >= TEND - 1) lapT = 0; setPlaying(true); };
 $('#tl').oninput = e => { if (playing) setPlaying(false); lapT = e.target.value / 1000 * TEND; renderLap(); setPlaying(false); };
 document.addEventListener('visibilitychange', () => { if (document.hidden && playing) setPlaying(false); });
+$('#m-play').onclick = () => $('#play').onclick();
+$('#tl-m').oninput = e => { $('#tl').value = e.target.value; $('#tl').oninput({ target: $('#tl') }); };
+$('#sc-m').oninput = e => { if (selLeg >= 0) setScrub(e.target.value / 1000); };
 
 /* ---------------- caméra ---------------- */
 const SHEET = { posisi: 366, riwayat: 420, laporan: 372 };
@@ -349,7 +356,7 @@ const ALLPTS = ZONES.map(z => z.at).concat(...Object.values(D.routes).map(r => r
 let pitch3d = true;
 function camera(which, instant) {
   if (!map) return;
-  let pts, bearing, pitch, zoff = 0, pad = { top: 104, bottom: SHEET[which] + 66 + 8, left: 22, right: 58 };
+  let pts, bearing, pitch, zoff = 0, pad = { top: 104, bottom: occ(which).bot + 8, left: 22, right: 58 };
   if (which === 'posisi') { pts = LV.path.concat([B1]); bearing = -58; pitch = 56; zoff = .85; pad.top = 96; pad.left = 56; pad.right = 64; }
   else if (which === 'riwayat') { const g = G[selLeg >= 0 ? selLeg : DETAIL]; pts = g.path; bearing = brg(g.path[0], g.path[g.path.length - 1]) - 90; pitch = 56; zoff = .12; pad.top = 64; pad.right = 60; pad.left = 52; }
   else { pts = ALLPTS; bearing = -16; pitch = 52; zoff = .9; pad.top = 150; pad.left = 108; pad.right = 84; }
@@ -365,10 +372,61 @@ $('#c-right').onclick = () => map && map.easeTo({ bearing: map.getBearing() + 30
 $('#c-tilt').onclick = () => { if (!map) return; pitch3d = !pitch3d; $('#c-tilt').textContent = pitch3d ? '2D' : '3D'; map.easeTo({ pitch: pitch3d ? 55 : 0, duration: RM ? 0 : 600 }); };
 $('#c-home').onclick = () => camera(cur);
 
+/* ---------------- panneau repliable + mode carte seule ---------------- */
+const app = $('#app'), PEEK = 58;
+// hauteur (px) masquée en haut / en bas de la carte par l'UI, selon l'état
+function occ(w) { const solo = app.classList.contains('solo'); return { top: solo ? 0 : 56, bot: solo ? (w === 'posisi' ? 0 : 76) : 66 + (app.classList.contains('folded') ? PEEK : SHEET[w]) }; }
+// applique un changement d'état puis recale la carte : le point au centre de l'ancienne zone libre
+// glisse au centre de la nouvelle (exact même inclinée, donc replier/rouvrir ne dérive pas)
+function relayout(mutate) {
+  const a = occ(cur); mutate(); const b = occ(cur);
+  if (!map) return;
+  const h = map.getContainer().clientHeight, x = map.getContainer().clientWidth / 2, ya = (a.top + h - a.bot) / 2, yb = (b.top + h - b.bot) / 2;
+  if (map.isMoving()) camera(cur);
+  else if (ya !== yb) map.easeTo({ center: map.unproject([x, ya]), offset: [0, yb - h / 2], duration: RM ? 0 : 450, essential: true });
+  setTimeout(() => map.resize(), 480);
+}
+function setFold(f) {
+  if (app.classList.contains('folded') === f) return;
+  if (f) document.querySelectorAll('.sheet').forEach(s => { s.scrollTop = 0; });
+  relayout(() => app.classList.toggle('folded', f));
+  document.querySelectorAll('.grab').forEach(g => { g.setAttribute('aria-expanded', !f); g.setAttribute('aria-label', f ? 'Buka panel' : 'Lipat panel'); });
+}
+// poignée + barre repliée : glisser (bas = replier, haut = rouvrir) ou taper (bascule)
+document.querySelectorAll('.grab, .peek').forEach(h => {
+  let y0 = null, dy = 0, dragged = false, sh;
+  h.onpointerdown = e => { y0 = e.clientY; dy = 0; dragged = false; sh = h.closest('.sheet'); h.setPointerCapture(e.pointerId); sh.style.transition = 'none'; };
+  h.onpointermove = e => {
+    if (y0 == null) return; dy = e.clientY - y0; if (Math.abs(dy) > 6) dragged = true;
+    const max = sh.offsetHeight - PEEK, base = app.classList.contains('folded') ? max : 0;
+    sh.style.transform = `translateY(${clamp(base + dy, 0, max)}px)`;
+  };
+  h.onpointerup = h.onpointercancel = () => {
+    if (y0 == null) return; y0 = null; sh.style.transition = sh.style.transform = '';
+    if (!dragged) return; const f = app.classList.contains('folded');
+    if (!f && dy > 50) setFold(true); else if (f && dy < -30) setFold(false);
+  };
+  h.onclick = () => { if (dragged) { dragged = false; return; } setFold(!app.classList.contains('folded')); };
+});
+function setSolo(on) {
+  if (app.classList.contains('solo') === on) return;
+  relayout(() => app.classList.toggle('solo', on));
+  document.querySelectorAll('.top, .tabs, .sheet').forEach(e => { e.inert = on; });
+  // vrai plein écran quand l'API existe (Android, desktop) ; sur iPhone le mode carte seule suffit
+  if (on && document.fullscreenEnabled && !document.fullscreenElement) app.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+  if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  setTimeout(() => (on ? $('#fs-exit') : $('#c-fs')).focus({ preventScroll: true }), 60);
+}
+$('#c-fs').onclick = () => setSolo(true);
+$('#fs-exit').onclick = () => setSolo(false);
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) setSolo(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && app.classList.contains('solo')) setSolo(false); });
+K.fold = setFold; K.solo = setSolo;
+
 /* ---------------- navigation ---------------- */
 function go(tab, instant) {
   if (playing) setPlaying(false); stopRaf();
-  cur = tab;
+  cur = tab; app.dataset.cur = tab;
   document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', b.dataset.go === tab));
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === 's-' + tab));
   if (tagMarker) tagMarker.getElement().style.display = tab === 'posisi' ? '' : 'none';
