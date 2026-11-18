@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1A1A3A">
+<title>Muatku · Truk Lukis (arah D)</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Shrikhand&family=Yellowtail&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --kertas:#F3EADA; --krem:#FFF8EC; --krem-2:#F8EEDC;
+  --tinta:#1A1A3A; --tinta-2:#2C2D5C; --abu:#5B576E; --garis:#D9CDB6;
+  --merah:#D12A1F; --kuning:#F6B400; --hijau:#0E7A47; --biru:#2148A6; --pink:#E0468F;
+  --muat:var(--hijau); --kosong:var(--merah); --henti:var(--biru);
+  --tab-h:70px; --top-h:56px;
+  --f-cat:'Shrikhand',Georgia,serif; --f-tulis:'Yellowtail','Brush Script MT',cursive;
+  --f-teks:'Atkinson Hyperlegible',system-ui,sans-serif;
+  --gerigi:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Crect width='12' height='8' fill='%23F6B400'/%3E%3Cpath d='M0 0L6 7.5L12 0z' fill='%23D12A1F'/%3E%3Ccircle cx='6' cy='2' r='1.1' fill='%23FFF8EC'/%3E%3C/svg%3E");
+  --rantai:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='10'%3E%3Cpath d='M11 1.5L14.5 5L11 8.5L7.5 5z' fill='%231A1A3A'/%3E%3Ccircle cx='2.5' cy='5' r='1.6' fill='%23D12A1F'/%3E%3Ccircle cx='19.5' cy='5' r='1.6' fill='%23D12A1F'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--f-teks);color:var(--tinta);background:#16163a;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(circle at 50% 50%,rgba(246,180,0,.10) 0 1.5px,transparent 2px),radial-gradient(circle at 0 0,rgba(224,70,143,.10) 0 1.5px,transparent 2px);
+  background-size:28px 28px,28px 28px;background-position:0 0,14px 14px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--kuning);outline-offset:2px;border-radius:8px}
+.stage{min-height:100%;display:grid;place-items:center;padding:24px}
+.app{position:relative;width:390px;height:844px;overflow:hidden;background:var(--kertas);border-radius:38px;
+  box-shadow:0 0 0 10px #0d0d25,0 0 0 12px #34356a,0 40px 80px rgba(0,0,0,.5)}
+@media (max-width:500px){.stage{padding:0;display:block}.app{width:100vw;height:100vh;height:100dvh;border-radius:0;box-shadow:none}}
+svg.ikon{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- topbar (kaca depan + rumbai) ---------- */
+.topbar{position:absolute;z-index:500;top:0;left:0;right:0;height:var(--top-h);background:var(--tinta);color:var(--krem);
+  display:flex;align-items:center;gap:10px;padding:0 16px}
+.topbar::after{content:"";position:absolute;left:0;right:0;top:100%;height:13px;pointer-events:none;
+  background:radial-gradient(circle at 50% 3px,var(--kuning) 0 1.7px,transparent 2.2px) 0 0/16px 13px repeat-x,
+             radial-gradient(circle at 50% 0,var(--merah) 0 7.5px,transparent 8px) 0 0/16px 13px repeat-x;
+  filter:drop-shadow(0 2px 0 rgba(26,26,58,.35))}
+.judul{font-family:var(--f-cat);font-size:25px;line-height:1;color:var(--kuning);letter-spacing:.2px;
+  text-shadow:2px 2px 0 var(--merah),3px 3px 0 var(--merah)}
+.topbar .kanan{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.06em}
+.live{display:inline-flex;align-items:center;gap:6px;padding:5px 9px 5px 8px;border:1.5px solid rgba(255,248,236,.35);border-radius:99px}
+.live i{width:8px;height:8px;border-radius:50%;background:#3BD47E;box-shadow:0 0 0 0 rgba(59,212,126,.6);animation:denyut 1.8s infinite}
+@keyframes denyut{0%{box-shadow:0 0 0 0 rgba(59,212,126,.6)}70%{box-shadow:0 0 0 8px rgba(59,212,126,0)}100%{box-shadow:0 0 0 0 rgba(59,212,126,0)}}
+.plat{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;background:var(--kuning);color:#111;
+  border:2px solid #111;border-radius:5px;padding:2px 7px 1px;font-weight:700;font-size:13px;letter-spacing:.08em;line-height:1.05;
+  box-shadow:inset 0 0 0 1.5px var(--kuning),inset 0 0 0 2.5px #111;white-space:nowrap}
+.plat small{font-size:7px;letter-spacing:.12em;opacity:.8}
+
+/* ---------- screens ---------- */
+.screen{position:absolute;inset:0 0 var(--tab-h) 0;visibility:hidden;opacity:0;transform:translateY(8px);
+  transition:opacity .28s ease,transform .32s cubic-bezier(.2,.8,.2,1),visibility 0s .32s}
+.screen.aktif{visibility:visible;opacity:1;transform:none;transition:opacity .28s ease,transform .32s cubic-bezier(.2,.8,.2,1),visibility 0s}
+.gulir{position:absolute;inset:calc(var(--top-h) + 4px) 0 0 0;overflow-y:auto;overscroll-behavior:contain;padding:18px 16px 28px;scrollbar-width:none}
+.gulir::-webkit-scrollbar{display:none}
+
+/* ---------- ornamen: bingkai, bunga sudut, gerigi, rantai ---------- */
+.bingkai{position:relative;background:var(--krem);border:2.5px solid var(--tinta);border-radius:18px;box-shadow:4px 5px 0 var(--tinta)}
+.bingkai::before{content:"";position:absolute;inset:5px;border:1.5px solid var(--merah);border-radius:13px;pointer-events:none}
+.bunga{position:absolute;width:24px;height:24px;z-index:2;pointer-events:none}
+.bunga.tl{top:-10px;left:-10px}.bunga.tr{top:-10px;right:-10px}.bunga.bl{bottom:-10px;left:-10px}.bunga.br{bottom:-10px;right:-10px}
+.gerigi{height:8px;background:var(--gerigi) 0 0/12px 8px repeat-x}
+.rantai{height:10px;background:var(--rantai) center/22px 10px repeat-x;opacity:.85;margin:22px 30px}
+.celetuk{font-family:var(--f-tulis);font-size:21px;line-height:1.1;color:var(--merah)}
+
+/* ---------- Posisi ---------- */
+#peta{position:absolute;inset:0;background:#e9e0cf}
+#peta .leaflet-tile-pane{filter:sepia(.32) saturate(.62) hue-rotate(-6deg) contrast(1.03) brightness(1.03)}
+.leaflet-container{font-family:var(--f-teks)}
+.leaflet-top.leaflet-left{top:calc(var(--top-h) + 14px)}
+.leaflet-control-attribution{font-size:9.5px!important;background:rgba(255,248,236,.85)!important;border-radius:0 6px 6px 0;color:var(--abu)!important}
+.leaflet-control-attribution a{color:var(--tinta-2)!important}
+.kendali{position:absolute;z-index:450;right:12px;top:calc(var(--top-h) + 24px);display:flex;flex-direction:column;gap:9px}
+.kendali button{width:44px;height:44px;border-radius:50%;background:var(--krem);border:2.5px solid var(--tinta);box-shadow:2px 3px 0 var(--tinta);
+  display:grid;place-items:center;color:var(--tinta);transition:transform .15s,box-shadow .15s,background .2s}
+.kendali button:active{transform:translate(2px,3px);box-shadow:0 0 0 var(--tinta)}
+.kendali button[aria-pressed="true"]{background:var(--kuning)}
+.kendali .pisah{height:4px}
+
+.mk-truk{position:relative;width:60px;height:60px}
+.mk-truk .halo{position:absolute;inset:8px;border-radius:50%;background:rgba(14,122,71,.35);animation:halo 2.2s ease-out infinite}
+@keyframes halo{0%{transform:scale(.7);opacity:.9}100%{transform:scale(1.7);opacity:0}}
+.mk-truk .arah{position:absolute;inset:0;transform:rotate(var(--rot,0deg))}
+.mk-truk .arah::before{content:"";position:absolute;left:50%;top:-1px;margin-left:-8px;border:8px solid transparent;border-top:0;border-bottom:11px solid var(--merah);filter:drop-shadow(0 0 0 var(--tinta))}
+.mk-truk .medali{position:absolute;inset:9px;border-radius:50%;background:var(--tinta);border:3px solid var(--kuning);
+  box-shadow:0 0 0 2px var(--tinta),0 0 0 4px var(--pink),3px 4px 0 3px rgba(26,26,58,.55);display:grid;place-items:center}
+.mk-truk .medali svg{width:28px;height:18px;color:var(--krem)}
+.tag-zona{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transform:translate(-50%,calc(-100% - 12px));font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  background:var(--krem);border:2px solid var(--tinta);border-radius:6px;padding:2px 6px;box-shadow:2px 2px 0 var(--tinta);color:var(--tinta)}
+.tag-zona i{width:8px;height:8px;border-radius:2px;transform:rotate(45deg);background:var(--kuning);border:1.5px solid var(--tinta)}
+.tag-zona.bongkar i{background:var(--pink)}
+.tag-zona.tuju{background:var(--tinta);color:var(--krem)}
+.tag-zona b{font-weight:700}
+.jauh .tag-zona.sek{padding:0;border:0;background:none;box-shadow:none;transform:translate(-50%,-50%)}
+.jauh .tag-zona.sek b{display:none}
+.jauh .tag-zona.sek i{width:10px;height:10px;border-width:2px}
+
+.lembar{position:absolute;z-index:480;left:10px;right:10px;bottom:10px;padding:18px 16px 14px;
+  transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.lembar .gerigi{position:absolute;left:-2.5px;right:-2.5px;top:-2.5px;border-radius:18px 18px 0 0;height:9px;border:2.5px solid var(--tinta);border-bottom:0;background-size:12px 8px;background-position:0 -1px}
+.lembar.ringkas{transform:translateY(calc(100% - 132px))}
+.pegangan{position:absolute;left:50%;top:12px;transform:translateX(-50%);width:64px;height:26px;display:grid;place-items:center;z-index:3}
+.pegangan::before{content:"";width:40px;height:5px;border-radius:9px;background:var(--garis)}
+.id-baris{display:flex;align-items:center;gap:11px;margin-top:6px}
+.lencana{width:46px;height:46px;flex:none;border-radius:50%;background:var(--tinta);border:3px solid var(--kuning);box-shadow:0 0 0 2px var(--tinta);display:grid;place-items:center}
+.lencana svg{width:28px;height:18px;color:var(--krem)}
+.id-teks{min-width:0;flex:1}
+.nama{font-family:var(--f-cat);font-size:19px;line-height:1.1;color:var(--tinta);font-weight:400}
+.model{font-size:12.5px;color:var(--abu);margin-top:2px}
+.pita{position:relative;margin:12px -4px 0;display:flex;justify-content:center}
+.pita span{position:relative;background:var(--merah);color:var(--krem);font-family:var(--f-tulis);font-size:20px;line-height:1;padding:5px 20px 6px;
+  clip-path:polygon(0 0,100% 0,calc(100% - 10px) 50%,100% 100%,0 100%,10px 50%)}
+.tujuan{margin-top:12px}
+.dari{font-size:13px;color:var(--abu)}
+.dari b{color:var(--tinta)}
+.mungkin{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:8px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--abu)}
+.yakin{display:inline-flex;align-items:center;gap:5px;color:var(--hijau);letter-spacing:.04em}
+.yakin i{display:inline-flex;gap:2px}.yakin i b{width:5px;height:11px;border-radius:2px;background:var(--hijau)}
+.ke{font-size:19px;font-weight:700;line-height:1.2;margin-top:2px}
+.angka{display:grid;grid-template-columns:1.15fr 1fr 1fr;margin-top:12px;border-top:2px solid var(--tinta);border-bottom:2px solid var(--tinta)}
+.angka>div{padding:8px 0 7px 10px;border-left:1.5px dashed var(--garis)}
+.angka>div:first-child{padding-left:0;border-left:0}
+.angka .lbl{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--abu)}
+.angka .nil{font-family:var(--f-cat);font-size:27px;line-height:1.1;color:var(--tinta);text-shadow:2px 2px 0 var(--kuning);margin-top:3px;white-space:nowrap}
+.angka .nil small{font-family:var(--f-teks);font-weight:700;font-size:12px;text-shadow:none;margin-left:2px;color:var(--tinta)}
+.angka .pm{font-family:var(--f-teks);font-size:15px;font-weight:700;text-shadow:none;margin-right:1px}
+.jalur{position:relative;margin:14px 2px 0;height:30px}
+.jalur .rel{position:absolute;left:8px;right:8px;top:8px;height:6px;border-radius:9px;background:repeating-linear-gradient(90deg,var(--tinta) 0 6px,transparent 6px 11px)}
+.jalur .isi{position:absolute;left:8px;top:7px;height:8px;border-radius:9px;background:var(--hijau);border:1.5px solid var(--tinta);width:calc((100% - 16px) * var(--p,.72))}
+.jalur .ujung{position:absolute;top:3px;width:16px;height:16px;border-radius:50%;border:2.5px solid var(--tinta);background:var(--kuning)}
+.jalur .ujung.b{right:0;background:var(--pink)}
+.jalur .ujung.a{left:0}
+.jalur .tr{position:absolute;top:-6px;left:calc(8px + (100% - 16px) * var(--p,.72));transform:translateX(-50%);width:30px;height:20px;color:var(--tinta)}
+.jalur .lbl{position:absolute;top:21px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--abu)}
+.jalur .lbl.a{left:0}.jalur .lbl.b{right:0}
+.kaki{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12.5px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;font-weight:700;border-radius:99px;padding:4px 10px 4px 8px;border:2px solid var(--tinta);background:var(--krem)}
+.chip i{width:8px;height:8px;border-radius:50%}
+.chip.mesin i{background:#18B866;box-shadow:0 0 0 2px rgba(24,184,102,.25)}
+.chip.st{color:var(--krem);border-color:var(--tinta)}
+.st.muat{background:var(--muat)}.st.kosong{background:var(--kosong)}.st.henti{background:var(--henti)}
+.kaki .hari{margin-left:auto;color:var(--abu)}
+.kaki .hari b{color:var(--tinta)}
+
+/* ---------- Riwayat ---------- */
+.hari-pilih{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.hari-pilih button{border:2.5px solid var(--tinta);border-radius:12px;background:var(--krem);padding:5px 4px 5px;text-align:center;box-shadow:2px 3px 0 var(--tinta);transition:transform .15s,box-shadow .15s,background .2s}
+.hari-pilih button:active{transform:translate(2px,3px);box-shadow:none}
+.hari-pilih .h{display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--abu)}
+.hari-pilih .t{display:inline;font-family:var(--f-cat);font-size:21px;line-height:1.1;margin-left:4px}
+.hari-pilih .h{display:inline!important}
+.hari-pilih .k{display:block;font-size:10.5px;font-weight:700;color:var(--abu);min-height:13px}
+.hari-pilih button[aria-pressed="true"]{background:var(--tinta);color:var(--kuning)}
+.hari-pilih button[aria-pressed="true"] .h,.hari-pilih button[aria-pressed="true"] .k{color:var(--krem)}
+.ringkas-hari{display:flex;justify-content:space-between;align-items:baseline;margin:14px 2px 6px;font-size:13px;color:var(--abu)}
+.ringkas-hari b{color:var(--tinta);font-size:14px}
+.pita-hari{position:relative;height:16px;border:2px solid var(--tinta);border-radius:6px;background:repeating-linear-gradient(90deg,#E7DCC8 0 1px,transparent 1px 12.5%),var(--krem-2);overflow:hidden}
+.pita-hari span{position:absolute;top:0;bottom:0}
+.skala{display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:var(--abu);margin:3px 0 14px;letter-spacing:.04em}
+.daftar{list-style:none}
+.trip{display:grid;grid-template-columns:44px 16px 1fr auto;align-items:start;width:100%;text-align:left;padding:9px 2px;gap:0 8px}
+.trip .jam{font-weight:700;font-size:14px;line-height:1.2;font-variant-numeric:tabular-nums}
+.trip .jam small{display:block;font-weight:400;color:var(--abu);font-size:12px}
+.trip .rel{position:relative;align-self:stretch;margin:-9px 0}
+.trip .rel::before{content:"";position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--garis)}
+.trip .rel::after{content:"";position:absolute;left:1px;top:13px;width:14px;height:14px;border-radius:50%;background:var(--c);border:2.5px solid var(--tinta)}
+.trip[data-st="henti"] .rel::after{border-radius:3px;transform:rotate(45deg) scale(.82)}
+.daftar li:first-child .trip .rel::before{top:20px}.daftar li:last-child .trip .rel::before{bottom:calc(100% - 20px)}
+.trip .isi{min-width:0}
+.trip .rute{font-weight:700;font-size:15px;line-height:1.25}
+.trip .rute .p{color:var(--merah);margin:0 3px}
+.trip .info{font-size:12.5px;color:var(--abu);margin-top:2px}
+.trip .info .s{font-weight:700;color:var(--c)}
+.trip .celetuk{font-size:17px;margin-top:1px}
+.trip[data-st="henti"] .rute{font-weight:400;font-size:13.5px;color:var(--abu)}
+.trip[data-st="henti"] .rute b{color:var(--tinta)}
+.tanda{align-self:center;font-size:10.5px;font-weight:700;letter-spacing:.06em;padding:3px 7px;border-radius:6px;border:2px solid var(--tinta);white-space:nowrap}
+.tanda.do{background:var(--krem)}
+.tanda.nodo{background:var(--merah);color:var(--krem)}
+.tanda.jalan{background:var(--kuning)}
+.buka{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s cubic-bezier(.2,.8,.2,1)}
+.buka>div{overflow:hidden;min-height:0}
+.buka.ya{grid-template-rows:1fr}
+.buka .bingkai{margin:6px 6px 16px 4px}
+.detail{padding:18px 16px 14px}
+.d-kepala{display:flex;gap:10px;align-items:flex-start}
+.d-kepala .teks{flex:1;min-width:0}
+.d-label{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--abu)}
+.d-rute{font-family:var(--f-cat);font-weight:400;font-size:19px;line-height:1.15;margin-top:2px}
+.d-rute .p{color:var(--merah)}
+.d-rute .ke{white-space:nowrap}
+.d-jam{font-size:13.5px;margin-top:4px;font-variant-numeric:tabular-nums}
+.d-jam b{font-weight:700}
+.sketsa{width:62px;height:62px;flex:none;border-radius:12px;background:var(--krem-2);border:2px solid var(--tinta)}
+.d-tag{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.d-tag .chip{font-size:12px;padding:3px 9px}
+.d-tag .chip.doc{background:var(--krem-2)}
+.d-tag .tautkan{background:var(--kuning)}
+.d-angka{display:grid;grid-template-columns:repeat(3,1fr);margin-top:13px;border-top:2px solid var(--tinta);border-bottom:2px solid var(--tinta)}
+.d-angka>div{padding:7px 0 7px 9px;border-left:1.5px dashed var(--garis)}
+.d-angka>div:first-child{border:0;padding-left:0}
+.d-angka dt{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--abu)}
+.d-angka dd{font-family:var(--f-cat);font-size:21px;line-height:1.15;text-shadow:1.5px 1.5px 0 var(--kuning)}
+.d-angka dd small{font-family:var(--f-teks);font-weight:700;font-size:11.5px;text-shadow:none;margin-left:2px}
+.grafik{margin-top:12px;position:relative}
+.grafik figcaption{display:flex;justify-content:space-between;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--abu)}
+.grafik figcaption output{letter-spacing:.02em;text-transform:none;color:var(--tinta);font-size:12px}
+.grafik svg{display:block;width:100%;height:auto;margin-top:5px;touch-action:none;cursor:crosshair}
+.biaya{margin-top:12px}
+.biaya .atas{display:flex;justify-content:space-between;align-items:baseline}
+.biaya .total{font-family:var(--f-cat);font-size:20px}
+.batang-biaya{display:flex;height:12px;border:2px solid var(--tinta);border-radius:6px;overflow:hidden;margin-top:6px}
+.batang-biaya span{height:100%}
+.leg{display:flex;justify-content:space-between;gap:10px;margin-top:6px;font-size:12px;color:var(--abu)}
+.leg b{color:var(--tinta)}
+.leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;border:1.5px solid var(--tinta);vertical-align:-1px}
+.detail .celetuk{text-align:center;margin-top:10px}
+.tombol{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:12px;border:2.5px solid var(--tinta);background:var(--kuning);font-weight:700;box-shadow:2px 3px 0 var(--tinta)}
+.tombol:active{transform:translate(2px,3px);box-shadow:none}
+
+/* ---------- Laporan ---------- */
+.periode{font-size:12px;font-weight:700;letter-spacing:.04em;color:rgba(255,248,236,.8)}
+.utama{position:relative;background:var(--tinta);color:var(--krem);border-radius:20px;border:2.5px solid var(--tinta);box-shadow:4px 5px 0 var(--merah);padding:24px 18px 18px;text-align:center;overflow:visible}
+.utama::before{content:"";position:absolute;inset:7px;border:2px solid var(--kuning);border-radius:14px;pointer-events:none}
+.utama::after{content:"";position:absolute;inset:11px;border:1px dashed rgba(246,180,0,.45);border-radius:11px;pointer-events:none}
+.utama .gerigi{position:absolute;left:24px;right:24px;height:8px}
+.utama .gerigi.a{top:-5px;border-radius:3px;border:1.5px solid var(--tinta)}
+.utama .gerigi.b{bottom:-5px;border-radius:3px;border:1.5px solid var(--tinta);transform:scaleY(-1)}
+.utama .lbl{position:relative;font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--kuning)}
+.besar{position:relative;font-family:var(--f-cat);font-size:118px;line-height:.98;color:var(--kuning);margin:6px 0 2px;letter-spacing:-1px;font-variant-numeric:tabular-nums;
+  text-shadow:1px 1px 0 var(--merah),2px 2px 0 var(--merah),3px 3px 0 var(--merah),4px 4px 0 var(--merah),5px 5px 0 var(--merah),6px 6px 0 var(--merah),7px 7px 0 #8E160F,8px 8px 0 #8E160F}
+.besar sup{font-size:.48em;vertical-align:.78em;margin-left:4px}
+.utama .sub{position:relative;font-size:15px;line-height:1.35;max-width:270px;margin:0 auto}
+.utama .sub b{color:var(--kuning)}
+.utama .celetuk{position:relative;color:var(--krem);font-size:25px;line-height:1.05;margin-top:12px}
+.utama .lbl::before,.utama .lbl::after{content:"\2756";color:var(--pink);font-size:11px;vertical-align:1px;margin:0 9px}
+.blok-judul{display:flex;justify-content:space-between;align-items:baseline;margin:26px 2px 10px}
+.blok-judul h2{font-family:var(--f-cat);font-weight:400;font-size:20px;color:var(--tinta);text-shadow:1.5px 1.5px 0 var(--kuning)}
+.blok-judul span{font-size:12px;color:var(--abu)}
+.bar3{display:grid;grid-template-columns:36px 1fr;align-items:center;gap:8px;margin-bottom:9px}
+.bar3 .k{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--abu)}
+.bar3 .b{display:flex;height:22px;border:2.5px solid var(--tinta);border-radius:8px;overflow:hidden;background:var(--krem-2)}
+.bar3 .b span{height:100%;width:0;transition:width 1s cubic-bezier(.2,.8,.2,1),opacity .25s;border-right:2px solid var(--tinta);position:relative}
+.bar3 .b span:last-child{border-right:0}
+.bar3 .b span.lain{background:repeating-linear-gradient(135deg,#D9CDB6 0 4px,#EDE3D0 4px 8px)}
+.bar3 .b span.kosong::after{content:"44%";position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--krem)}
+.redup span{opacity:.25}.redup span.sorot{opacity:1}
+.keadaan{display:grid;gap:9px;margin-top:6px}
+.keadaan button{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;text-align:left;width:100%;padding:11px 13px;background:var(--krem);border:2.5px solid var(--tinta);border-radius:14px;box-shadow:3px 4px 0 var(--tinta);transition:transform .15s,box-shadow .15s}
+.keadaan button:active{transform:translate(2px,3px);box-shadow:1px 1px 0 var(--tinta)}
+.keadaan button[aria-pressed="true"]{background:#FFF1C9}
+.keadaan .lab{display:inline-block;color:var(--krem);font-weight:700;font-size:12.5px;letter-spacing:.04em;padding:4px 10px;border-radius:7px;border:2px solid var(--tinta);min-width:92px;text-align:center}
+.keadaan .rinci{font-size:12.5px;color:var(--abu);line-height:1.3}
+.keadaan .rinci b{color:var(--tinta)}
+.keadaan .nil{font-family:var(--f-cat);font-size:24px;line-height:1;text-align:right;white-space:nowrap}
+.keadaan .nil small{font-family:var(--f-teks);font-size:12px;font-weight:700;margin-left:1px}
+.keadaan .kosong-row .nil{color:var(--merah)}
+.plang-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.plang{position:relative;padding:13px 13px 12px;background:var(--krem);border:2.5px solid var(--tinta);border-radius:14px;box-shadow:3px 4px 0 var(--tinta);text-align:left;width:100%}
+.plang .k{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--abu)}
+.plang .v{font-family:var(--f-cat);font-size:26px;line-height:1.15;margin-top:3px;white-space:nowrap}
+.plang .v small{font-family:var(--f-teks);font-size:12px;font-weight:700;margin-left:2px}
+.plang .s{font-size:12.5px;color:var(--abu);margin-top:2px}
+.plang .s b{color:var(--tinta)}
+.plang.awas{background:var(--merah);color:var(--krem)}
+.plang.awas .k,.plang.awas .s{color:rgba(255,248,236,.9)}
+.plang.awas .s b{color:var(--kuning)}
+.plang .lanjut{position:absolute;right:11px;top:11px;width:26px;height:26px;border-radius:50%;background:var(--kuning);border:2px solid var(--tinta);display:grid;place-items:center;color:var(--tinta)}
+.turus{display:block;margin-top:6px;width:100%;height:20px}
+.catatan{font-size:11.5px;color:var(--abu);text-align:center;margin-top:22px}
+
+/* ---------- tab bar ---------- */
+.tabbar{position:absolute;z-index:600;left:0;right:0;bottom:0;height:var(--tab-h);background:var(--tinta);display:grid;grid-template-columns:repeat(3,1fr);padding-top:6px}
+.tabbar::before{content:"";position:absolute;left:0;right:0;top:-8px;height:8px;background:var(--gerigi) 0 0/12px 8px repeat-x;transform:scaleY(-1)}
+.tabbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:rgba(255,248,236,.62);font-size:12px;font-weight:700;letter-spacing:.05em;position:relative;padding-bottom:6px}
+.tabbar button[aria-selected="true"]{color:var(--kuning)}
+.tabbar button[aria-selected="true"] svg{filter:drop-shadow(1.5px 1.5px 0 var(--merah))}
+.tabbar button::after{content:"";position:absolute;bottom:7px;width:6px;height:6px;transform:rotate(45deg) scale(0);background:var(--pink);transition:transform .25s}
+.tabbar button[aria-selected="true"]::after{transform:rotate(45deg) scale(1)}
+.tabbar svg.ikon{width:24px;height:24px}
+
+.toast{position:absolute;z-index:700;left:50%;bottom:calc(var(--tab-h) + 18px);transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--tinta);color:var(--krem);padding:10px 16px;border-radius:12px;font-size:13.5px;box-shadow:3px 4px 0 var(--merah);transition:.3s;max-width:340px;text-align:center}
+.toast.ya{opacity:1;transform:translate(-50%,0)}
+
+/* entrance */
+.masuk>*{animation:naik .55s cubic-bezier(.2,.8,.2,1) both}
+.masuk>*:nth-child(2){animation-delay:.05s}.masuk>*:nth-child(3){animation-delay:.1s}.masuk>*:nth-child(4){animation-delay:.15s}
+.masuk>*:nth-child(5){animation-delay:.2s}.masuk>*:nth-child(6){animation-delay:.25s}.masuk>*:nth-child(7){animation-delay:.3s}.masuk>*:nth-child(8){animation-delay:.35s}
+@keyframes naik{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="truk" viewBox="0 0 32 20"><path d="M1.5 3.5h17.5l-1.6 9.5H3.3z" fill="currentColor"/><path d="M4 6h12.5M4.6 9h11.4" stroke="#1A1A3A" stroke-width="1" opacity=".55"/><path d="M20.3 5.5h5.6l4 4.8V14h-9.6z" fill="currentColor"/><path d="M21.8 7h3.6l2.6 3.1h-6.2z" fill="#1A1A3A"/><rect x="1.5" y="13" width="28.5" height="2.2" rx=".8" fill="currentColor"/><g fill="#1A1A3A" stroke="currentColor" stroke-width="1.3"><circle cx="7.5" cy="16.6" r="2.6"/><circle cx="13.4" cy="16.6" r="2.6"/><circle cx="25.4" cy="16.6" r="2.6"/></g></symbol>
+    <symbol id="bunga" viewBox="0 0 24 24"><g fill="#E0468F" stroke="#1A1A3A" stroke-width="1.2"><ellipse cx="12" cy="6" rx="3.3" ry="4.6"/><ellipse cx="12" cy="6" rx="3.3" ry="4.6" transform="rotate(90 12 12)"/><ellipse cx="12" cy="6" rx="3.3" ry="4.6" transform="rotate(180 12 12)"/><ellipse cx="12" cy="6" rx="3.3" ry="4.6" transform="rotate(270 12 12)"/></g><g fill="#0E7A47"><circle cx="5" cy="5" r="1.5"/><circle cx="19" cy="5" r="1.5"/><circle cx="5" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/></g><circle cx="12" cy="12" r="3.4" fill="#F6B400" stroke="#1A1A3A" stroke-width="1.2"/><circle cx="12" cy="12" r="1.1" fill="#D12A1F"/></symbol>
+    <symbol id="i-posisi" viewBox="0 0 24 24"><path d="M12 21.5s-7-6.1-7-11.6a7 7 0 0 1 14 0c0 5.5-7 11.6-7 11.6z"/><path d="M12 6.6l3 3-3 3-3-3z"/></symbol>
+    <symbol id="i-riwayat" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="5" r="2.2"/><path d="M8.2 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.8" stroke-dasharray="2.4 2.6"/></symbol>
+    <symbol id="i-laporan" viewBox="0 0 24 24"><path d="M4 20.5h16"/><rect x="5" y="11" width="3.6" height="7" rx="1"/><rect x="10.2" y="5" width="3.6" height="13" rx="1"/><rect x="15.4" y="8.5" width="3.6" height="9.5" rx="1"/></symbol>
+    <symbol id="i-ikut" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></symbol>
+    <symbol id="i-rute" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><path d="M8 15.5c2-5 6-2 8-7" stroke-dasharray="2 2.4"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-min" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-panah" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  </defs>
+</svg>
+
+<div class="stage">
+<div class="app" id="app">
+
+  <!-- ============ POSISI ============ -->
+  <section class="screen" id="s-posisi" aria-label="Posisi">
+    <div id="peta" role="application" aria-label="Peta posisi truk"></div>
+    <header class="topbar">
+      <span class="judul">Muatku</span>
+      <div class="kanan"><span class="live"><i></i>LIVE · <span id="jam">11:15</span> WIB</span></div>
+    </header>
+    <div class="kendali">
+      <button id="b-plus" aria-label="Perbesar"><svg class="ikon"><use href="#i-plus"/></svg></button>
+      <button id="b-min" aria-label="Perkecil"><svg class="ikon"><use href="#i-min"/></svg></button>
+      <span class="pisah"></span>
+      <button id="b-ikut" aria-label="Ikuti truk" aria-pressed="false"><svg class="ikon"><use href="#i-ikut"/></svg></button>
+      <button id="b-rute" aria-label="Lihat seluruh rute"><svg class="ikon"><use href="#i-rute"/></svg></button>
+    </div>
+    <article class="lembar bingkai" id="lembar">
+      <div class="gerigi" aria-hidden="true"></div>
+      <svg class="bunga tl"><use href="#bunga"/></svg><svg class="bunga tr"><use href="#bunga"/></svg>
+      <button class="pegangan" id="pegangan" aria-label="Lipat atau buka panel" aria-expanded="true"></button>
+      <div class="masuk" id="lembar-isi">
+        <div class="id-baris">
+          <div class="lencana"><svg><use href="#truk"/></svg></div>
+          <div class="id-teks"><h1 class="nama">Dump Truck 01</h1><p class="model">Hino FM 260 JD</p></div>
+          <span class="plat">BM 8921 KU<small>11·29</small></span>
+        </div>
+        <div class="pita"><span>Pelan-pelan asal selamat</span></div>
+        <div class="tujuan">
+          <p class="dari">Dari <b>Stockpile Batu Ampar</b> · 07:15</p>
+          <p class="mungkin">Kemungkinan menuju <span class="yakin"><i><b></b><b></b><b></b></i>Keyakinan tinggi</span></p>
+          <h2 class="ke">PT RAPP — Power Station</h2>
+        </div>
+        <div class="angka">
+          <div><p class="lbl">Tiba</p><p class="nil"><span class="pm">±</span>12:34<small>WIB</small></p></div>
+          <div><p class="lbl">Sisa</p><p class="nil"><span id="sisa">63</span><small>km lagi</small></p></div>
+          <div><p class="lbl">Laju</p><p class="nil"><span id="laju">48</span><small>km/jam</small></p></div>
+        </div>
+        <div class="jalur" id="jalur" style="--p:.72">
+          <div class="rel"></div><div class="isi"></div>
+          <span class="ujung a"></span><span class="ujung b"></span>
+          <svg class="tr"><use href="#truk"/></svg>
+          <span class="lbl a">Batu Ampar</span><span class="lbl b">RAPP</span>
+        </div>
+        <div class="kaki">
+          <span class="chip mesin"><i></i>Mesin nyala</span>
+          <span class="chip st muat">Bermuatan</span>
+          <span class="hari">Hari ini: <b>1 perjalanan · 162 km</b></span>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ RIWAYAT ============ -->
+  <section class="screen" id="s-riwayat" aria-label="Riwayat">
+    <header class="topbar">
+      <span class="judul">Riwayat</span>
+      <div class="kanan"><span class="plat">BM 8921 KU<small>11·29</small></span></div>
+    </header>
+    <div class="gulir" id="gulir-riwayat">
+      <div class="hari-pilih" id="hari-pilih" role="group" aria-label="Pilih hari"></div>
+      <div class="ringkas-hari" id="ringkas-hari"></div>
+      <div class="pita-hari" id="pita-hari" aria-hidden="true"></div>
+      <div class="skala" aria-hidden="true"><span>04</span><span>08</span><span>12</span><span>16</span><span>20</span></div>
+      <ul class="daftar" id="daftar"></ul>
+    </div>
+  </section>
+
+  <!-- ============ LAPORAN ============ -->
+  <section class="screen" id="s-laporan" aria-label="Laporan">
+    <header class="topbar">
+      <span class="judul">Laporan</span>
+      <div class="kanan"><span class="periode">30 hari · 19 Okt – 17 Nov</span></div>
+    </header>
+    <div class="gulir" id="gulir-laporan">
+      <section class="utama" aria-label="Kilometer jalan kosong">
+        <div class="gerigi a" aria-hidden="true"></div><div class="gerigi b" aria-hidden="true"></div>
+        <svg class="bunga tl"><use href="#bunga"/></svg><svg class="bunga tr"><use href="#bunga"/></svg>
+        <svg class="bunga bl"><use href="#bunga"/></svg><svg class="bunga br"><use href="#bunga"/></svg>
+        <p class="lbl">Jalan kosong</p>
+        <p class="besar" aria-label="44 persen"><span id="persen">44</span><sup>%</sup></p>
+        <p class="sub">dari semua kilometer — <b>2.778 km</b> dari 6.296 km ditempuh tanpa muatan</p>
+        <p class="celetuk">Biar bak tak melamun,<br>cari muatan balik!</p>
+      </section>
+
+      <div class="blok-judul"><h2>Tiga keadaan</h2><span>ketuk untuk menyorot</span></div>
+      <div class="bar3"><span class="k">km</span><div class="b" id="bar-km">
+        <span class="muat" style="background:var(--muat)" data-w="48.05"></span><span class="kosong" style="background:var(--kosong)" data-w="44.12"></span><span class="lain" data-w="7.83" title="Lainnya 493 km"></span></div></div>
+      <div class="bar3"><span class="k">jam</span><div class="b" id="bar-jam">
+        <span class="muat" style="background:var(--muat)" data-w="30.13"></span><span class="kosong2" style="background:var(--kosong)" data-w="27.51"></span><span class="henti" style="background:var(--henti)" data-w="42.36"></span></div></div>
+      <div class="keadaan" id="keadaan">
+        <button data-k="muat" aria-pressed="false"><span class="lab st muat">Bermuatan</span><span class="rinci"><b>3.025 km</b><br>jalan dengan muatan</span><span class="nil">69<small>j</small></span></button>
+        <button data-k="kosong" class="kosong-row" aria-pressed="false"><span class="lab st kosong">Kosong</span><span class="rinci"><b>2.778 km</b> · 44% km<br>tanpa muatan</span><span class="nil">63<small>j</small></span></button>
+        <button data-k="henti" aria-pressed="false"><span class="lab st henti">Berhenti</span><span class="rinci"><b>79 j</b> di zona<br><b>17 j 30</b> di jalan</span><span class="nil">97<small>j</small></span></button>
+      </div>
+
+      <div class="rantai" aria-hidden="true"></div>
+
+      <div class="plang-grid">
+        <div class="plang"><p class="k">Total jarak</p><p class="v">6.296<small>km</small></p><p class="s">dalam 30 hari</p></div>
+        <div class="plang"><p class="k">Perjalanan</p><p class="v">67</p><p class="s"><b>30 ritase</b> selesai</p><svg class="turus" id="turus" viewBox="0 0 150 20" aria-label="30 ritase"></svg></div>
+        <button class="plang awas" id="b-nodo"><span class="lanjut"><svg class="ikon" style="width:16px;height:16px"><use href="#i-panah"/></svg></span><p class="k">Tanpa DO</p><p class="v">2<small>perjalanan</small></p><p class="s"><b>Tautkan DO</b> agar laporan lengkap</p></button>
+        <div class="plang"><p class="k">Biaya</p><p class="v">Rp 20,2<small>jt</small></p><p class="s">≈ <b>Rp 3.200</b> / km</p></div>
+      </div>
+      <p class="catatan">Maket arah D · data contoh Dump Truck 01</p>
+    </div>
+  </section>
+
+  <nav class="tabbar" role="tablist" aria-label="Navigasi">
+    <button role="tab" data-tab="posisi" aria-selected="true"><svg class="ikon"><use href="#i-posisi"/></svg>Posisi</button>
+    <button role="tab" data-tab="riwayat" aria-selected="false"><svg class="ikon"><use href="#i-riwayat"/></svg>Riwayat</button>
+    <button role="tab" data-tab="laporan" aria-selected="false"><svg class="ikon"><use href="#i-laporan"/></svg>Laporan</button>
+  </nav>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

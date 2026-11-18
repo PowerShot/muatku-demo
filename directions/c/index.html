@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#F4F3EF">
+<link rel="icon" href="data:,">
+<title>Muatku — Pita (arah C)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wdth,wght@75..112.5,200..700&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+:root{
+  --paper:#F4F3EF; --card:#FFFFFF; --ink:#121211; --ink2:#4E4C47; --ink3:#86837B; --line:#DCD9D1; --line2:#ECEAE4;
+  /* couleur = mouvement ; gris = immobilité */
+  --muat:#F0530A; --muat-txt:#BF3F00; --muat-soft:#FBD9C6;
+  --kosong:#2145DB; --kosong-txt:#1E3DC2; --kosong-soft:#D3DBFA;
+  --zona:#A29E94; --jalan:#4A4843; --mati:#C4C0B5;
+  --sans:"Schibsted Grotesk",ui-sans-serif,sans-serif;
+  --mono:"Martian Mono",ui-monospace,monospace;
+  --tab:66px; --ease:cubic-bezier(.2,.7,.1,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#E3E1DA}
+body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.mono{font-family:var(--mono);font-stretch:87.5%;font-variant-numeric:tabular-nums}
+#app{position:relative;width:100%;height:100%;max-width:430px;margin:0 auto;background:var(--paper);overflow:hidden}
+@media (min-width:520px){
+  body{display:grid;place-items:center}
+  #app{width:390px;height:844px;max-height:calc(100vh - 32px);border-radius:34px;box-shadow:0 0 0 10px #121211,0 30px 80px -20px rgba(0,0,0,.45)}
+}
+.screen{position:absolute;inset:0 0 var(--tab) 0;opacity:0;visibility:hidden;transition:opacity .28s var(--ease),visibility 0s .28s}
+.screen.on{opacity:1;visibility:visible;transition:opacity .28s var(--ease)}
+.scroll{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ---------- tab bar ---------- */
+#tabs{position:absolute;left:0;right:0;bottom:0;height:var(--tab);background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);z-index:900;padding-bottom:env(safe-area-inset-bottom)}
+#tabs button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:11.5px;font-weight:600;letter-spacing:.01em;color:var(--ink3);position:relative;transition:color .2s}
+#tabs button svg{width:24px;height:24px}
+#tabs button[aria-selected=true]{color:var(--ink)}
+#tabs .bar{position:absolute;top:-1px;height:3px;width:calc(100%/3);left:0;background:var(--ink);transition:transform .35s var(--ease)}
+#tabs .bar::after{content:"";position:absolute;left:38%;right:38%;top:0;height:3px;background:var(--muat)}
+
+/* ---------- shared bits ---------- */
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px}
+.sw.muat{background:var(--muat)} .sw.kosong{background:var(--kosong)}
+.sw.zona{background:var(--zona);height:6px;vertical-align:1px} .sw.jalan{background:var(--jalan);height:6px;vertical-align:1px}
+.sw.mati{background:var(--mati);height:2px;vertical-align:3px}
+.eyebrow{font-family:var(--mono);font-stretch:87.5%;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.ribbon{position:relative;touch-action:none;user-select:none;-webkit-user-select:none;cursor:ew-resize}
+.ribbon svg{display:block;overflow:visible}
+.ribbon .band{transition:transform .25s var(--ease);transform-origin:50% 30px}
+.ribbon.scrubbing .band{transform:scaleY(1.14)}
+.ribbon .thumb{transition:r .2s var(--ease)}
+.ribbon.scrubbing .thumb{r:11px}
+.pin{transition:transform .2s var(--ease);transform-box:fill-box;transform-origin:50% 100%}
+.pin.hit{transform:scale(1.25)}
+.tick-l{font-family:var(--mono);font-stretch:80%;font-size:9px;fill:var(--ink3)}
+
+/* ---------- Posisi ---------- */
+#map{position:absolute;inset:0;background:#E8E6E0}
+.leaflet-container{font-family:var(--sans);background:#E8E6E0}
+.leaflet-tile-pane{filter:grayscale(1) sepia(.07) contrast(.92) brightness(1.06)}
+.leaflet-control-attribution{font-size:9px!important;background:rgba(255,255,255,.7)!important}
+#s-posisi .leaflet-bottom{bottom:var(--panel-h,318px)}
+.leaflet-control-zoom{display:none}
+.top{position:absolute;left:12px;right:12px;top:12px;display:flex;gap:8px;align-items:flex-start;z-index:500;pointer-events:none}
+.top>*{pointer-events:auto}
+.idcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 12px 9px;flex:1;min-width:0}
+.plate{font-family:var(--mono);font-stretch:87.5%;font-weight:600;font-size:15px;letter-spacing:.02em}
+.idcard .sub{font-size:11.5px;color:var(--ink2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;font-family:var(--mono);font-stretch:87.5%;font-size:11px;font-weight:600;letter-spacing:.06em;white-space:nowrap}
+#mode{background:var(--ink);color:#fff;margin-top:6px;transition:background .25s,color .25s}
+#mode .dot{width:8px;height:8px;border-radius:50%;background:var(--muat);box-shadow:0 0 0 0 rgba(240,83,10,.6);animation:pulse 1.8s infinite}
+#mode.replay{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+#mode.replay .dot{animation:none;background:none;width:0;height:0;border-style:solid;border-width:4.5px 7px 4.5px 0;border-color:transparent var(--ink) transparent transparent;border-radius:0;box-shadow:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(240,83,10,.55)}70%{box-shadow:0 0 0 9px rgba(240,83,10,0)}100%{box-shadow:0 0 0 0 rgba(240,83,10,0)}}
+
+.panel{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);border-radius:20px 20px 0 0;padding:14px 16px 10px;z-index:600;box-shadow:0 -12px 30px -18px rgba(0,0,0,.25)}
+.readout{display:grid;grid-template-columns:auto auto 1fr;align-items:end;gap:0 18px}
+.big{font-family:var(--mono);font-stretch:80%;font-weight:300;font-size:44px;line-height:.9;letter-spacing:-.02em}
+.big small{font-size:11px;font-weight:500;letter-spacing:.04em;color:var(--ink3);margin-left:4px}
+.readout .back{justify-self:end;align-self:center;height:36px;padding:0 13px;border-radius:999px;background:var(--ink);color:#fff;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap;opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity .2s,transform .2s var(--ease)}
+.readout .back.show{opacity:1;transform:none;pointer-events:auto}
+.state{margin-top:10px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.state .ago{font-weight:500;color:var(--ink3)}
+.ctx{margin-top:8px;min-height:54px;font-size:13px;line-height:1.38;color:var(--ink2)}
+.ctx b{color:var(--ink);font-weight:700}
+.ctx .conf{display:inline-block;font-family:var(--mono);font-stretch:87.5%;font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;background:var(--ink);color:#fff;vertical-align:1px;margin-left:4px}
+.ctx .ev{color:var(--ink);font-weight:600}
+#ribbon-day{margin:10px -4px 0;padding:0 4px}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:11.5px;color:var(--ink2)}
+.foot b{color:var(--ink)}
+.legend{display:flex;gap:9px;font-size:10.5px;color:var(--ink3)}
+.legend span{display:flex;align-items:center;gap:4px}
+.hint{position:absolute;left:50%;top:-34px;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:999px;white-space:nowrap;transition:opacity .4s;pointer-events:none}
+.hint::after{content:"";position:absolute;left:50%;bottom:-4px;width:8px;height:8px;background:var(--ink);transform:translateX(-50%) rotate(45deg)}
+.hint.gone{opacity:0}
+
+/* map markers */
+.truck{width:36px;height:36px;display:grid;place-items:center;position:relative}
+.truck .ring{position:absolute;inset:0;border-radius:50%;background:rgba(240,83,10,.22);animation:ring 2s var(--ease) infinite}
+.truck.past .ring{display:none}
+.truck .tt{position:absolute;left:31px;top:1px;background:var(--ink);color:#fff;font-family:var(--mono);font-stretch:80%;font-size:10px;font-weight:600;padding:2px 5px;border-radius:3px;display:none;white-space:nowrap}
+.truck.past .tt{display:block}
+.truck svg{width:28px;height:28px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3));transition:transform .08s linear}
+@keyframes ring{0%{transform:scale(.5);opacity:1}100%{transform:scale(1.6);opacity:0}}
+.ghost{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink);background:var(--card);box-shadow:0 0 0 3px rgba(255,255,255,.7)}
+.ztag{display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--mono);font-stretch:85%;font-size:9.5px;font-weight:600;letter-spacing:.03em;color:var(--ink)}
+.ztag i{width:10px;height:10px;border:2px solid var(--ink);background:var(--card);flex:none}
+.ztag.muat i{background:var(--ink)}
+.ztag.bongkar i{border-radius:50%}
+.ztag span{background:rgba(255,255,255,.88);padding:2px 5px;border-radius:3px}
+.mk{width:12px;height:12px;border-radius:50%;background:var(--jalan);border:2px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.mk.fast{background:var(--ink)}
+.mklab{font-family:var(--mono);font-stretch:80%;font-size:9px;font-weight:600;background:var(--ink);color:#fff;padding:1px 4px;border-radius:3px;white-space:nowrap}
+
+/* ---------- Riwayat ---------- */
+.hdr{padding:16px 16px 8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hdr h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.daynav{display:flex;align-items:center;gap:4px}
+.daynav button{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);background:var(--card)}
+.daynav button:disabled{opacity:.3;cursor:default}
+.daynav .d{font-size:13px;font-weight:700;min-width:118px;text-align:center}
+.daysum{padding:0 16px;font-size:12px;color:var(--ink2);display:flex;justify-content:space-between}
+#ribbon-hday{margin:6px 12px 0;padding:0 4px}
+.trips{margin:6px 16px 0;border-top:1px solid var(--line)}
+.trow{width:100%;display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;text-align:left;padding:11px 2px;border-bottom:1px solid var(--line);transition:background .2s}
+.trow .n{font-family:var(--mono);font-stretch:80%;font-size:10px;font-weight:600;width:20px;height:20px;border-radius:5px;display:grid;place-items:center;border:1.5px solid var(--ink)}
+.trow[aria-current=true]{background:var(--card)}
+.trow[aria-current=true] .n{background:var(--ink);color:#fff}
+.trow .t{font-family:var(--mono);font-stretch:85%;font-size:11.5px;color:var(--ink2)}
+.trow .r{font-size:14px;font-weight:700;margin-top:2px}
+.trow .k{text-align:right;font-family:var(--mono);font-stretch:85%;font-size:12px;font-weight:600}
+.trow .k em{display:block;font-style:normal;font-family:var(--sans);font-size:11px;font-weight:600;margin-top:2px}
+.trow .k em.muat{color:var(--muat-txt)} .trow .k em.kosong{color:var(--kosong-txt)}
+.detail{padding:12px 16px 24px}
+#tmap{height:196px;border-radius:14px;border:1px solid var(--line);overflow:hidden;position:relative;z-index:1}
+.sread{display:flex;align-items:baseline;gap:14px;margin:14px 0 2px}
+.sread .big{font-size:30px}
+.sread .meta{font-size:12px;color:var(--ink2);line-height:1.35;margin-left:auto;text-align:right}
+#ribbon-trip{margin:4px -4px 0;padding:0 4px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:10px}
+.grid4>div{padding:10px 0 10px 8px;border-left:1px solid var(--line)}
+.grid4>div:first-child{border-left:0;padding-left:0}
+.grid4 .v{font-family:var(--mono);font-stretch:80%;font-size:14px;font-weight:600;margin-top:4px;white-space:nowrap}
+.doc{margin-top:14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:baseline}
+.doc .do{font-family:var(--mono);font-stretch:85%;font-size:15px;font-weight:600}
+.doc .by{font-size:12px;color:var(--ink2)}
+.doc .nodo{font-size:13px;font-weight:700;color:var(--muat-txt)}
+.cost{margin-top:14px}
+.cost .tot{display:flex;justify-content:space-between;align-items:baseline}
+.cost .tot .v{font-family:var(--mono);font-stretch:85%;font-size:20px;font-weight:500}
+.cbar{display:flex;height:8px;margin:8px 0 6px;gap:2px}
+.cbar i{display:block;height:100%;background:var(--ink)}
+.cbar i+i{background:var(--ink3)}
+.cline{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink2);padding:3px 0}
+.cline .mono{color:var(--ink);font-size:12px}
+.empty{padding:40px 24px;text-align:center;color:var(--ink2);font-size:14px;line-height:1.5}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+
+/* ---------- Laporan ---------- */
+.hero{padding:6px 16px 0}
+.hero .pct{font-family:var(--mono);font-stretch:75%;font-weight:200;font-size:112px;line-height:.86;letter-spacing:-.05em;color:var(--kosong);display:flex;align-items:flex-start}
+.hero .pct sup{font-size:40px;font-weight:300;letter-spacing:0;margin:10px 0 0 4px}
+.hero .cap{font-size:18px;font-weight:800;letter-spacing:-.01em;margin-top:8px}
+.hero .sub{font-size:13px;color:var(--ink2);margin-top:3px}
+.kmbar{display:flex;height:10px;gap:2px;margin:12px 0 0}
+.kmbar i{display:block;height:100%}
+.triad{display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:10px;padding:12px 16px 4px}
+.triad .h{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:5px}
+.triad .v{font-family:var(--mono);font-stretch:80%;font-size:15px;font-weight:600;margin-top:3px}
+.triad .s{font-size:10.5px;color:var(--ink2);margin-top:1px;line-height:1.3}
+.score-h{position:relative;height:42px;padding:14px 16px 4px}
+.score-h>div{position:absolute;left:16px;right:16px;bottom:6px;display:flex;justify-content:space-between;align-items:baseline;transition:opacity .2s,transform .25s var(--ease)}
+.score-h b{font-size:14px;font-weight:800}
+.sh-b{opacity:0;transform:translateY(6px);font-size:12px;color:var(--ink2);white-space:nowrap}
+.sh-b span{display:inline-flex;align-items:center;gap:4px}
+.sh-b .mono{font-weight:600;color:var(--ink)}
+.score-h.reading .sh-a{opacity:0;transform:translateY(-6px)}
+.score-h.reading .sh-b{opacity:1;transform:none}
+.score{position:relative;margin:0 16px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.axis{display:grid;grid-template-columns:40px 1fr 34px;height:16px;align-items:end}
+.axis svg{display:block;width:100%;height:14px;overflow:visible}
+.row{display:grid;grid-template-columns:40px 1fr 34px;align-items:center;width:100%;height:13px;text-align:left;transition:height .3s var(--ease)}
+.row .dl{font-family:var(--mono);font-stretch:75%;font-size:8.5px;color:var(--ink3)}
+.row.we .dl{color:var(--mati)}
+.row .km{font-family:var(--mono);font-stretch:75%;font-size:8.5px;color:var(--ink3);text-align:right}
+.row svg{display:block;width:100%;height:9px}
+.row.open{height:40px;background:var(--card);box-shadow:0 0 0 1px var(--ink);border-radius:4px;position:relative;z-index:2}
+.row.open svg{height:26px}
+.row.open .dl,.row.open .km{color:var(--ink);font-weight:600;font-size:9.5px}
+.row.open .dl{padding-left:4px}.row.open .km{padding-right:4px}
+#cursor{position:absolute;top:16px;bottom:0;width:0;border-left:1.5px solid var(--ink);pointer-events:none;opacity:0;transition:opacity .2s}
+#cursor.on{opacity:1}
+#cursor .lab{position:absolute;top:-24px;left:0;transform:translateX(-50%);background:var(--ink);color:#fff;font-family:var(--mono);font-stretch:80%;font-size:10px;font-weight:600;padding:3px 6px;border-radius:4px;white-space:nowrap}
+.cursor-read{margin:8px 16px 0;min-height:38px;font-size:12px;color:var(--ink2);line-height:1.45}
+.cursor-read b{color:var(--ink)}
+.go{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.rowx{padding:7px 0 10px 40px;font-size:12px;color:var(--ink2);line-height:1.5;animation:rise .35s var(--ease) both}
+.rowx b{color:var(--ink)}
+.facts{margin:10px 16px 24px;border-top:1px solid var(--line)}
+.facts>div{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.facts .mono{font-size:13px;font-weight:600}
+.flag{font-family:var(--mono);font-stretch:85%;font-size:10px;font-weight:600;letter-spacing:.04em;padding:3px 7px;border-radius:4px;background:var(--muat);color:#fff}
+
+.ax{position:relative;height:14px}
+.ax span{position:absolute;bottom:2px;transform:translateX(-50%);font-family:var(--mono);font-stretch:75%;font-size:8.5px;color:var(--ink3)}
+.ribbon.sel{cursor:default;touch-action:pan-y}
+/* load-in */
+.rise{animation:rise .6s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- =============== POSISI =============== -->
+  <section class="screen" id="s-posisi" data-screen="posisi" aria-label="Posisi">
+    <div id="map" role="img" aria-label="Peta posisi truk"></div>
+    <div class="top">
+      <div class="idcard rise">
+        <div class="plate">BM 8921 KU</div>
+        <div class="sub">Dump Truck 01 · Hino FM 260 JD</div>
+      </div>
+      <button class="chip rise" id="mode" aria-live="polite"><span class="dot"></span><span id="mode-t">LIVE · 11:15</span></button>
+    </div>
+    <div class="panel" id="panel">
+      <div class="hint" id="hint">Geser pita untuk memutar ulang hari ini</div>
+      <div class="readout">
+        <div class="big mono" id="r-time">11:15<small>WIB</small></div>
+        <div class="big mono" id="r-speed">48<small>km/jam</small></div>
+        <button class="back" id="r-back" aria-label="Kembali ke posisi live">Ke live
+          <svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 2l5 4-5 4" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+      </div>
+      <div class="state" id="r-state"><span class="sw muat"></span>Bermuatan · mesin nyala</div>
+      <div class="ctx" id="r-ctx"></div>
+      <div class="ribbon" id="ribbon-day" role="slider" aria-label="Waktu hari ini" tabindex="0"></div>
+      <div class="foot">
+        <span>Hari ini · <b>1 perjalanan · 162 km</b></span>
+        <span class="legend"><span><i class="sw muat"></i>muat</span><span><i class="sw kosong"></i>kosong</span><span><i class="sw zona"></i>henti</span><span><i class="sw mati"></i>mati</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============== RIWAYAT =============== -->
+  <section class="screen scroll" id="s-riwayat" data-screen="riwayat" aria-label="Riwayat">
+    <div class="hdr">
+      <h1>Riwayat</h1>
+      <div class="daynav">
+        <button id="d-prev" aria-label="Hari sebelumnya"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L4 7l5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+        <div class="d" id="d-label">Selasa, 17 Nov</div>
+        <button id="d-next" aria-label="Hari berikutnya"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M5 2l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+      </div>
+    </div>
+    <div class="daysum" id="d-sum"></div>
+    <div class="ribbon sel" id="ribbon-hday" aria-label="Pita hari"></div>
+    <div class="trips" id="trips"></div>
+    <div id="tdetail"></div>
+    <div id="tpark" hidden><div id="tmap"></div></div>
+  </section>
+
+  <!-- =============== LAPORAN =============== -->
+  <section class="screen scroll" id="s-laporan" data-screen="laporan" aria-label="Laporan">
+    <div class="hdr"><h1>Laporan</h1><span class="eyebrow">30 hari · 19 Okt – 17 Nov</span></div>
+    <div class="hero">
+      <div class="pct mono" aria-label="44 persen">44<sup>%</sup></div>
+      <div class="cap">dari jarak tempuh, truk jalan kosong</div>
+      <div class="sub"><span class="mono">2.778</span> dari <span class="mono">6.296</span> km tanpa muatan</div>
+      <div class="kmbar" aria-hidden="true">
+        <i style="flex:3025;background:var(--muat)"></i><i style="flex:2778;background:var(--kosong)"></i><i style="flex:493;background:var(--mati)"></i>
+      </div>
+    </div>
+    <div class="triad">
+      <div><div class="h"><i class="sw muat"></i>Bermuatan</div><div class="v">69 j</div><div class="s">3.025 km</div></div>
+      <div><div class="h"><i class="sw kosong"></i>Kosong</div><div class="v">63 j</div><div class="s">2.778 km</div></div>
+      <div><div class="h"><i class="sw zona"></i>Berhenti</div><div class="v">97 j</div><div class="s">79 j di zona · 17 j 30 di jalan</div></div>
+    </div>
+    <div class="score-h" id="score-h"><div class="sh-a"><b>Partitur 30 hari</b><span class="eyebrow">ketuk hari · geser jam</span></div><div class="sh-b" id="cread" aria-live="polite"></div></div>
+    <div class="score" id="score">
+      <div class="axis"><span></span><svg id="score-axis"></svg><span></span></div>
+      <div id="rows"></div>
+      <div id="cursor"><span class="lab">10:00</span></div>
+    </div>
+    <div class="facts">
+      <div><span>Perjalanan</span><span class="mono">67</span></div>
+      <div><span>Ritase (dengan DO)</span><span class="mono">30</span></div>
+      <div><span>Perjalanan tanpa DO</span><span class="flag">2 PERLU DO</span></div>
+      <div><span>Biaya</span><span class="mono">Rp 20,2 jt <span style="color:var(--ink3);font-weight:500">≈ Rp 3.200/km</span></span></div>
+    </div>
+  </section>
+
+  <nav id="tabs" role="tablist" aria-label="Navigasi">
+    <span class="bar" id="tabbar"></span>
+    <button role="tab" data-tab="posisi" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4"/></svg>Posisi</button>
+    <button role="tab" data-tab="riwayat" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12h5" stroke-width="5"/><path d="M8.5 12h4" stroke-width="2"/><path d="M14 12h8" stroke-width="5"/><path d="M11 4v16"/></svg>Riwayat</button>
+    <button role="tab" data-tab="laporan" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M2 5h8M13 5h9M5 10.5h11M2 16h4M9 16h13M2 21.5h14"/></svg>Laporan</button>
+  </nav>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="routes.js"></script>
+<script src="days.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

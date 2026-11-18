@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#F5EEE2">
+<title>Muatku — Arah B · Cincin</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="stage">
+<div class="app" id="app">
+
+  <!-- ============================== POSISI ============================== -->
+  <section class="screen" id="s-posisi" data-screen="posisi" aria-label="Posisi">
+    <header class="mast">
+      <div class="kicker"><span class="live"><i></i>Langsung</span><span class="sep"></span><span>Rabu, 18 Nov · 11:15 WIB</span></div>
+      <h1 class="title">Dump Truck <span class="num title-num">01</span></h1>
+      <p class="plate"><b>BM 8921 KU</b><span>Hino FM 260 JD</span></p>
+    </header>
+
+    <div class="bento">
+      <article class="card c6 ringcard">
+        <div class="card-head">
+          <h2 class="serif-h">Hari <em>ini</em></h2>
+          <span class="pill">1 trajet</span>
+        </div>
+        <div class="rings-row">
+          <div class="rings" id="rings-today" style="--size:148px">
+            <div class="rings-center"><span class="num rc-val"></span><span class="rc-cap"></span></div>
+          </div>
+          <div class="today-say">
+            <p class="serif">Jalan <em>penuh</em> sejak 07:15.</p>
+            <p class="sub">Belum ada km kosong hari ini.</p>
+          </div>
+        </div>
+        <ul class="legend cols tight" data-for="rings-today">
+          <li><button class="lg on" data-k="muat"><span class="lg-label"><i class="dot muat"></i>Bermuatan</span><span class="num lg-val"><span data-count="162">162</span><small>km</small></span><span class="lg-sub">3 j 42 mnt</span></button></li>
+          <li><button class="lg" data-k="kosong"><span class="lg-label"><i class="dot kosong"></i>Kosong</span><span class="num lg-val">0<small>km</small></span><span class="lg-sub">hari ini</span></button></li>
+          <li><button class="lg" data-k="henti"><span class="lg-label"><i class="dot henti"></i>Berhenti</span><span class="num lg-val">1<small>j</small>03</span><span class="lg-sub">2 kali</span></button></li>
+        </ul>
+      </article>
+
+      <article class="card c6 mapwin" id="mw-live" style="--h:178px">
+        <div class="mw-map" id="map-live"></div>
+        <div class="mw-chips">
+          <span class="chip ink"><b class="num" id="spd">48</b>km/jam</span>
+          <span class="chip"><i class="eng"></i>Mesin nyala</span>
+        </div>
+        <button class="mw-hit" aria-label="Perbesar peta"><span class="mw-exp"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></span></button>
+        <button class="mw-close" aria-label="Tutup peta"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Tutup</span></button>
+        <div class="mw-detail">
+          <div class="kicker">Kemungkinan menuju · keyakinan tinggi</div>
+          <div class="mwd-title serif">PT RAPP — Power Station</div>
+          <div class="mwd-row">
+            <div><span class="num">12:34</span><small>± tiba WIB</small></div>
+            <div><span class="num km-left">63</span><small>km lagi</small></div>
+            <div><span class="num">48</span><small>km/jam</small></div>
+          </div>
+          <div class="mwd-key"><span><i class="ln muat"></i>Sudah ditempuh · bermuatan</span><span><i class="ln dash"></i>Sisa rute</span></div>
+        </div>
+      </article>
+
+      <article class="card c3 fill-ink eta">
+        <div class="kicker">Perkiraan tiba</div>
+        <div class="num eta-big">12:34</div>
+        <div class="eta-sub">± WIB · <b class="km-left">63</b> km lagi</div>
+      </article>
+
+      <article class="card c3 dest">
+        <div class="kicker">Kemungkinan menuju</div>
+        <div class="serif dest-name">PT RAPP — Power Station</div>
+        <div class="conf"><span class="bars"><i></i><i></i><i></i></span>Keyakinan tinggi</div>
+      </article>
+
+      <article class="card c6 journey">
+        <div class="kicker">Perjalanan ini</div>
+        <div class="jr-ends">
+          <div><span class="serif">Stockpile Batu Ampar</span><small>Berangkat 07:15</small></div>
+          <div class="r"><span class="serif">PT RAPP</span><small>± 12:34</small></div>
+        </div>
+        <div class="jr-bar"><i id="jr-fill"></i><span class="jr-truck" id="jr-truck"></span></div>
+        <div class="jr-foot"><span><b class="num">162</b> km ditempuh</span><span><b class="num km-left">63</b> km lagi</span></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================== RIWAYAT ============================== -->
+  <section class="screen" id="s-riwayat" data-screen="riwayat" aria-label="Riwayat">
+    <header class="mast">
+      <div class="kicker"><span>Riwayat</span><span class="sep"></span><span>Pekan ini</span></div>
+      <h1 class="title">Selasa, <em>17 Nov</em></h1>
+      <p class="plate"><b>2 trajet · 416 km</b><span>1 ritase · 1 DO tertaut</span></p>
+    </header>
+    <div class="daystrip" id="daystrip" role="tablist" aria-label="Pilih hari"></div>
+    <ol class="tl" id="tl"></ol>
+  </section>
+
+  <!-- ============================== LAPORAN ============================== -->
+  <section class="screen" id="s-laporan" data-screen="laporan" aria-label="Laporan">
+    <header class="mast">
+      <div class="kicker"><span>Laporan 30 hari</span><span class="sep"></span><span>19 Okt – 17 Nov</span></div>
+      <h1 class="title headline">Hampir separuh jalan, <em>baknya kosong.</em></h1>
+    </header>
+
+    <div class="bento">
+      <article class="card c6 ringcard big">
+        <div class="rings" id="rings-month" style="--size:244px">
+          <div class="rings-center"><span class="num rc-val"></span><span class="rc-cap"></span></div>
+        </div>
+        <ul class="legend cols" data-for="rings-month">
+          <li><button class="lg" data-k="muat"><span class="lg-label"><i class="dot muat"></i>Bermuatan</span><span class="num lg-val"><span data-count="69">69</span><small>j</small></span><span class="lg-sub"><span data-count="3025">3.025</span> km</span></button></li>
+          <li><button class="lg on" data-k="kosong"><span class="lg-label"><i class="dot kosong"></i>Kosong</span><span class="num lg-val"><span data-count="63">63</span><small>j</small></span><span class="lg-sub"><span data-count="2778">2.778</span> km</span></button></li>
+          <li><button class="lg" data-k="henti"><span class="lg-label"><i class="dot henti"></i>Berhenti</span><span class="num lg-val"><span data-count="97">97</span><small>j</small></span><span class="lg-sub">79&nbsp;j zona ·<br>17&nbsp;j&nbsp;30 jalan</span></button></li>
+        </ul>
+        <p class="howto">Cincin luar &amp; tengah: porsi <b>km</b>. Cincin dalam: porsi <b>waktu</b> (229 j tercatat).</p>
+      </article>
+
+      <article class="card c6 fill-kosong punch">
+        <div class="kicker">Jalan tanpa muatan</div>
+        <div class="punch-row"><span class="num punch-big" data-count="2778">2.778</span><span class="punch-unit">km</span></div>
+        <p class="serif punch-txt">dari 6.296 km dalam 30 hari. Dengan biaya rata-rata Rp 3.200/km, itu <b>≈ Rp 8,9 jt</b> untuk bak kosong.</p>
+      </article>
+
+      <article class="card c3 total">
+        <div class="kicker">Total jarak</div>
+        <div class="num stat-big"><span data-count="6296">6.296</span></div>
+        <div class="stat-unit">km</div>
+        <div class="split"><i class="muat" style="--w:48%"></i><i class="kosong" style="--w:44%"></i><i class="lain" style="--w:8%"></i></div>
+        <div class="split-lab"><span>48% muat</span><span>44% kosong</span></div>
+      </article>
+
+      <article class="card c3 counts">
+        <div class="cnt"><span class="num stat-mid" data-count="67">67</span><span>trajet</span></div>
+        <div class="cnt"><span class="num stat-mid" data-count="30">30</span><span>ritase<br>(muat → bongkar)</span></div>
+      </article>
+
+      <article class="card c6 stops">
+        <div class="card-head"><div class="kicker">Berhenti</div><span class="num stat-inline">97<small>j</small></span></div>
+        <div class="stopbar"><i class="z" style="--w:81.9%"><b>79 j</b> di zona</i><i class="j" style="--w:18.1%"></i></div>
+        <div class="stop-lab"><span><i class="dot henti"></i>Di zona muat/bongkar · antre &amp; muat</span><span><i class="dot hatch"></i>17 j 30 di jalan</span></div>
+      </article>
+
+      <article class="card c3 cost">
+        <div class="kicker">Biaya</div>
+        <div class="num stat-big"><small>Rp</small><span data-count="20.2" data-dec="1">20,2</span></div>
+        <div class="stat-unit">juta</div>
+        <div class="cost-sub">≈ Rp 3.200 / km</div>
+      </article>
+
+      <article class="card c3 fill-warn nodo">
+        <div class="kicker">Tanpa DO</div>
+        <div class="num stat-big">2</div>
+        <div class="stat-unit">trajet bermuatan</div>
+        <button class="btn-mini" data-toast="Prototipe: menautkan DO ada di aplikasi utama">Tautkan DO <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
+
+      <article class="card c6 cal">
+        <div class="card-head"><h2 class="serif-h">30 hari, <em>30 cincin</em></h2><span class="pill">ketuk hari</span></div>
+        <div class="cal-dow"><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span></div>
+        <div class="cal-grid" id="cal"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================== TAB BAR ============================== -->
+  <nav class="tabbar" aria-label="Navigasi">
+    <button class="tab" data-go="posisi"><svg viewBox="0 0 24 24"><path d="M12 21s-6.5-5.7-6.5-10.8a6.5 6.5 0 0 1 13 0C18.5 15.3 12 21 12 21z"/><circle cx="12" cy="10.2" r="2.3"/></svg><span>Posisi</span></button>
+    <button class="tab" data-go="riwayat"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2"/></svg><span>Riwayat</span></button>
+    <button class="tab" data-go="laporan"><svg viewBox="0 0 24 24"><path d="M12 2.8A9.2 9.2 0 1 1 2.8 12"/><path d="M12 6.6A5.4 5.4 0 1 1 6.6 12"/><path d="M12 10.3a1.7 1.7 0 1 1-1.7 1.7"/></svg><span>Laporan</span></button>
+  </nav>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="routes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
