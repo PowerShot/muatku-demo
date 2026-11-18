@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#121210">
+<link rel="icon" href="data:,">
+<title>Muatku — Arah E · Proyek</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100,400..800&family=Big+Shoulders:opsz,wght@10..72,700..900&family=Big+Shoulders+Stencil:opsz,wght@10..72,900&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- Pictogrammes signalétiques -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-full" viewBox="0 0 64 40">
+    <path d="M7 12 Q12 4 19 6 Q25 1 31 5 Q36 4 40 12 Z"/>
+    <path d="M3 13 H42 L39 27 H6 Z"/>
+    <path d="M44 15 H55 L62 23 V31 H44 Z"/>
+    <path d="M47 18 H54 L58 23 H47 Z" style="fill:var(--hole)"/>
+    <rect x="3" y="28" width="59" height="4"/>
+    <circle cx="13" cy="33.5" r="5.5"/><circle cx="25" cy="33.5" r="5.5"/><circle cx="53" cy="33.5" r="5.5"/>
+    <circle cx="13" cy="33.5" r="2" style="fill:var(--hole)"/><circle cx="25" cy="33.5" r="2" style="fill:var(--hole)"/><circle cx="53" cy="33.5" r="2" style="fill:var(--hole)"/>
+  </symbol>
+  <symbol id="i-empty" viewBox="0 0 64 40">
+    <path d="M3 13 H42 L39 27 H6 Z M8.5 16.5 L10 23.5 H36 L37.6 16.5 Z" fill-rule="evenodd"/>
+    <path d="M44 15 H55 L62 23 V31 H44 Z"/>
+    <path d="M47 18 H54 L58 23 H47 Z" style="fill:var(--hole)"/>
+    <rect x="3" y="28" width="59" height="4"/>
+    <circle cx="13" cy="33.5" r="5.5"/><circle cx="25" cy="33.5" r="5.5"/><circle cx="53" cy="33.5" r="5.5"/>
+    <circle cx="13" cy="33.5" r="2" style="fill:var(--hole)"/><circle cx="25" cy="33.5" r="2" style="fill:var(--hole)"/><circle cx="53" cy="33.5" r="2" style="fill:var(--hole)"/>
+  </symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24">
+    <path d="M8 1.5 H16 L22.5 8 V16 L16 22.5 H8 L1.5 16 V8 Z"/>
+    <rect x="5.5" y="10" width="13" height="4" style="fill:var(--hole)"/>
+  </symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24">
+    <path d="M12 1.5 L23.5 22 H0.5 Z"/>
+    <rect x="10.4" y="8" width="3.2" height="8" style="fill:var(--hole)"/>
+    <rect x="10.4" y="17.6" width="3.2" height="2.8" style="fill:var(--hole)"/>
+  </symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24">
+    <path d="M3 2 H21 V16 H15.5 L12 22.5 L8.5 16 H3 Z"/>
+    <rect x="8.5" y="5.5" width="7" height="7" style="fill:var(--hole)"/>
+  </symbol>
+  <symbol id="i-log" viewBox="0 0 24 24">
+    <path d="M4 3 H8 V1.5 H16 V3 H20 V23 H4 Z"/>
+    <rect x="7" y="8" width="10" height="2.4" style="fill:var(--hole)"/>
+    <rect x="7" y="12.6" width="10" height="2.4" style="fill:var(--hole)"/>
+    <rect x="7" y="17.2" width="6" height="2.4" style="fill:var(--hole)"/>
+  </symbol>
+  <symbol id="i-board" viewBox="0 0 24 24">
+    <rect x="2" y="2" width="20" height="20"/>
+    <rect x="5" y="12" width="3.6" height="7" style="fill:var(--hole)"/>
+    <rect x="10.2" y="6" width="3.6" height="13" style="fill:var(--hole)"/>
+    <rect x="15.4" y="9" width="3.6" height="10" style="fill:var(--hole)"/>
+  </symbol>
+  <symbol id="i-target" viewBox="0 0 24 24">
+    <path d="M10.5 1 H13.5 V5 H10.5 Z M10.5 19 H13.5 V23 H10.5 Z M1 10.5 H5 V13.5 H1 Z M19 10.5 H23 V13.5 H19 Z"/>
+    <path d="M5 5 H19 V19 H5 Z M8 8 V16 H16 V8 Z" fill-rule="evenodd"/>
+    <rect x="10.5" y="10.5" width="3" height="3"/>
+  </symbol>
+  <symbol id="i-route" viewBox="0 0 24 24">
+    <rect x="1.5" y="16.5" width="6" height="6"/><rect x="16.5" y="1.5" width="6" height="6"/>
+    <path d="M4 16.5 V10 H20 V7.5 H17 V4.5 H23 V13 H7 V16.5 Z" transform="translate(0 0)"/>
+  </symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M2 9.5 H15 V4 L23 12 L15 20 V14.5 H2 Z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M7 3 L16 12 L7 21 L4.5 18.5 L11 12 L4.5 5.5 Z"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M4 1.5 H15 L20 6.5 V22.5 H4 Z"/><rect x="7" y="10" width="10" height="2.2" style="fill:var(--hole)"/><rect x="7" y="14.5" width="10" height="2.2" style="fill:var(--hole)"/></symbol>
+</svg>
+
+<div class="device" id="app">
+  <!-- ============ POSISI ============ -->
+  <section class="screen" id="s-posisi" aria-label="Posisi">
+    <header class="idbar">
+      <div class="unitno" aria-hidden="true">01</div>
+      <div class="ident"><b>Dump Truck 01</b><span>Hino FM 260 JD</span></div>
+      <div class="nopol" aria-label="Nomor polisi BM 8921 KU"><div><b>BM 8921 KU</b><small>11 · 29</small></div></div>
+    </header>
+    <div class="map" id="map-live" aria-label="Peta posisi truk"></div>
+    <div class="mapchips">
+      <span class="chip y"><i class="led"></i>Live</span>
+      <span class="chip"><i class="led"></i>Mesin nyala</span>
+    </div>
+    <div class="mbtns">
+      <button class="mbtn press on" id="b-follow" aria-pressed="true"><svg class="ic"><use href="#i-target"/></svg>Ikuti</button>
+      <button class="mbtn press" id="b-route"><svg class="ic"><use href="#i-route"/></svg>Rute</button>
+    </div>
+    <div class="stack" id="stack">
+      <div class="state riv bolt" style="animation-delay:40ms">
+        <div class="pic"><svg class="ic"><use href="#i-full"/></svg></div>
+        <div class="txt">
+          <h2 class="d">Bermuatan</h2>
+          <p>Dari <b>Stockpile Batu Ampar</b> · 07:15</p>
+        </div>
+        <div class="spd"><span class="num d" id="v-spd">48</span><small>KM/JAM</small></div>
+      </div>
+      <div class="dest bolt" style="animation-delay:120ms">
+        <div class="band"><span>Kemungkinan menuju</span><span class="conf">Yakin tinggi<i></i><i></i><i></i></span></div>
+        <h3>PT RAPP — Power Station</h3>
+        <div class="ruler-w">
+          <div class="ruler" role="progressbar" aria-label="Kemajuan perjalanan" aria-valuemin="0" aria-valuemax="100" id="ruler"><div class="fill" id="r-fill" style="width:72%"></div><div class="nib" id="r-nib" style="left:72%"></div></div>
+          <div class="rlab"><span>Batu Ampar 07:15</span><span>Trayek ke-1 hari ini</span><span>RAPP</span></div>
+        </div>
+        <div class="cells">
+          <div class="cell"><small>Tiba (WIB)</small><div class="v d"><span class="pm">±</span>12:34</div></div>
+          <div class="cell"><small>Sisa jarak</small><div class="v d"><span id="v-left">63</span><em>KM</em></div></div>
+          <div class="cell"><small>Hari ini</small><div class="v d"><span id="v-today">162</span><em>KM</em></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RIWAYAT ============ -->
+  <section class="screen" id="s-riwayat" aria-label="Riwayat">
+    <header class="hdr">
+      <div><h1>Riwayat</h1><div class="sub">Buku log · DT-01 · BM 8921 KU</div></div>
+      <div class="unit" aria-hidden="true">01</div>
+    </header>
+    <div class="days" id="days" role="tablist" aria-label="Pilih hari"></div>
+    <div class="daysum" id="daysum"></div>
+    <ol class="log" id="log"></ol>
+    <div id="sheet-wrap"></div>
+  </section>
+
+  <!-- ============ LAPORAN ============ -->
+  <section class="screen" id="s-laporan" aria-label="Laporan">
+    <header class="hdr">
+      <div><h1>Laporan</h1><div class="sub">30 hari · 20 Okt – 18 Nov 2026</div></div>
+      <div class="unit" aria-hidden="true">01</div>
+    </header>
+
+    <section class="warn bolt" aria-label="44 persen kilometer tanpa muatan">
+      <div class="warn-in">
+        <div class="warn-top"><span class="tri"><svg class="ic" style="color:var(--yel)"><use href="#i-warn"/></svg>Perhatian</span><span>Km tanpa muatan</span></div>
+        <div class="big44" aria-hidden="true"><span class="n" id="v-44">44</span><span class="pc">%</span></div>
+        <h2>Jalan kosong</h2>
+        <p><b>2.778 km</b> dari <b>6.296 km</b> ditempuh tanpa muatan — hampir separuh solar terbakar untuk pulang kosong.</p>
+        <div class="split" aria-hidden="true"><i class="m" style="width:48%"></i><i class="k" style="width:44%"></i><i style="flex:1;background:#3a3832"></i></div>
+        <div class="split-l"><span>Muat 48%</span><span>Kosong 44%</span><span>Lain 8%</span></div>
+      </div>
+    </section>
+
+    <section class="board bolt" style="animation-delay:90ms" aria-label="Papan status 30 hari">
+      <div class="board-hd">
+        <h3>Papan status<small>3 keadaan · 30 hari</small></h3>
+        <div class="seg" role="group" aria-label="Satuan"><button class="on" data-u="jam" aria-pressed="true">JAM</button><button data-u="km" aria-pressed="false">KM</button></div>
+      </div>
+      <div id="brows"></div>
+    </section>
+
+    <section class="grid6">
+      <div class="ctr y"><small>Total jarak</small><b class="d"><span data-ct="6296">6.296</span><em>KM</em></b></div>
+      <div class="ctr"><small>Trayek</small><b class="d"><span data-ct="67">67</span></b><div class="note">muat + kosong</div></div>
+      <div class="ctr"><small>Ritase</small><b class="d"><span data-ct="30">30</span><em>RIT</em></b><div class="note">muat → bongkar selesai</div></div>
+      <div class="ctr al"><small>Tanpa DO</small><b class="d"><span data-ct="2">2</span><em>TRAYEK</em></b><div class="note">perlu ditautkan</div></div>
+      <div class="ctr"><small>Biaya</small><b class="d">Rp <span data-ct="20.2" data-dec="1">20,2</span><em>JT</em></b></div>
+      <div class="ctr"><small>Rp per km</small><b class="d">≈ <span data-ct="3200">3.200</span></b><div class="note">Rp 20,2 jt ÷ 6.296 km</div></div>
+    </section>
+    <div class="foot"><span>Zona muat: Stockpile Batu Ampar, Stockpile 2</span><span>Bongkar: PT RAPP, Pelabuhan, Pabrik B</span></div>
+  </section>
+
+  <nav class="tabbar" aria-label="Navigasi">
+    <button class="tab" data-go="posisi"><svg class="ic"><use href="#i-pin"/></svg>Posisi</button>
+    <button class="tab" data-go="riwayat"><svg class="ic"><use href="#i-log"/></svg>Riwayat</button>
+    <button class="tab" data-go="laporan"><svg class="ic"><use href="#i-board"/></svg>Laporan</button>
+  </nav>
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="routes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

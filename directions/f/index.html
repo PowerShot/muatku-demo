@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#EED8BE">
+<title>Muatku — Arah F · Diorama</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Young+Serif&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app" class="m-posisi">
+  <div id="stage" aria-hidden="true">
+    <canvas id="scene"></canvas>
+    <div class="tilt tilt-top"></div>
+    <div class="tilt tilt-bot"></div>
+    <div id="labels"></div>
+  </div>
+  <div id="touch" aria-label="Maket wilayah — geser untuk memutar"></div>
+
+  <!-- chrome commun -->
+  <header class="topbar">
+    <div class="brand"><span class="wm">Muatku</span><span class="ctx" id="ctx">Posisi langsung</span></div>
+    <button class="compass" id="compass" type="button" aria-label="Kembalikan arah pandang">
+      <svg viewBox="0 0 44 44" aria-hidden="true"><g id="needle"><path d="M22 7 L26.5 22 H17.5 Z" fill="#C2562F"/><path d="M22 37 L17.5 22 H26.5 Z" fill="#2A2420" opacity=".75"/><text x="22" y="6.2" text-anchor="middle">U</text></g><circle cx="22" cy="22" r="2.2" fill="#FBF5EA"/></svg>
+    </button>
+  </header>
+  <div class="hint" id="hint">Geser untuk memutar maket</div>
+
+  <!-- POSISI -->
+  <section class="screen" id="s-posisi" data-screen="posisi">
+    <div class="live-chip"><i></i>Langsung · <b id="clock">11:05</b> WIB</div>
+    <article class="placard">
+      <div class="pl-top">
+        <span class="plate">BM 8921 KU</span>
+        <span class="pl-id">Dump Truck 01<span>Hino FM 260 JD</span></span>
+        <span class="engine"><i></i>Mesin nyala</span>
+      </div>
+      <p class="pl-kicker">Kemungkinan menuju <span class="conf"><b></b><b></b><b></b> keyakinan tinggi</span></p>
+      <h1 class="pl-dest">PT RAPP <em>— Power Station</em></h1>
+      <div class="pl-grid">
+        <div><span class="k">Tiba</span><span class="v">± 12:34<small>WIB</small></span></div>
+        <div><span class="k">Sisa</span><span class="v"><i id="kmLeft">63</i><small>km lagi</small></span></div>
+        <div><span class="k">Kecepatan</span><span class="v">48<small>km/jam</small></span></div>
+      </div>
+      <div class="pl-foot">
+        <span>Dari <b>Stockpile Batu Ampar</b> · 07:15</span>
+        <span>Hari ini <b>1 trajet · 162 km</b></span>
+      </div>
+    </article>
+  </section>
+
+  <!-- RIWAYAT -->
+  <section class="screen" id="s-riwayat" data-screen="riwayat">
+    <div class="scene-cap">
+      <div class="day-nav"><button type="button" aria-label="Hari sebelumnya">‹</button><span><b>Senin, 16 Nov</b> · 2 trajet · 416 km</span><button type="button" aria-label="Hari berikutnya">›</button></div>
+    </div>
+    <div class="sheet" id="rw-sheet">
+      <div class="grab"></div>
+      <div class="trip-head">
+        <div>
+          <p class="eyebrow" id="tr-eyebrow">Trajet 1 dari 2 · <span class="tag load">Bermuatan</span></p>
+          <h2 id="tr-title">Batu Ampar <span>→</span> PT RAPP</h2>
+          <p class="sub" id="tr-sub">07:15 – 11:52 · 4 j 37 mnt</p>
+        </div>
+        <button class="play" id="play" type="button" aria-label="Putar ulang trajet"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-play" d="M8 5.5v13l11-6.5z"/><g class="i-pause"><rect x="7" y="5.5" width="3.6" height="13" rx="1"/><rect x="13.4" y="5.5" width="3.6" height="13" rx="1"/></g></svg></button>
+      </div>
+      <div class="chart" id="chart">
+        <svg id="chart-svg" viewBox="0 0 350 132" preserveAspectRatio="none" role="img" aria-label="Profil kecepatan trajet"></svg>
+        <div class="chart-read" id="chart-read"><b>07:15</b> · 0 km/jam</div>
+      </div>
+      <div class="stats">
+        <div><span class="v" id="st-km">207</span><span class="k">km</span></div>
+        <div><span class="v" id="st-vmax">84</span><span class="k">km/jam maks</span></div>
+        <div><span class="v" id="st-stop">1 × 21</span><span class="k" id="st-stop-k">henti · mnt</span></div>
+      </div>
+      <div class="cards" id="tr-cards">
+        <div class="card do">
+          <span class="k">Delivery order</span>
+          <span class="v mono">DO-2611-014</span>
+          <span class="s">dibuat oleh Mario</span>
+        </div>
+        <div class="card cost">
+          <span class="k">Biaya trajet</span>
+          <span class="v">Rp 1.450.000</span>
+          <span class="s">Solar Rp 1.200.000 · Uang jalan Rp 250.000</span>
+        </div>
+      </div>
+      <h3 class="sec">Hari itu</h3>
+      <ol class="day" id="day">
+        <li class="ev"><time>06:30</time><span><b>Muat</b> · Stockpile Batu Ampar<small>45 mnt di zona</small></span></li>
+        <li class="trip on" data-trip="t1"><time>07:15</time><span><b>Batu Ampar → PT RAPP</b><small>207 km · 4 j 37 mnt · DO-2611-014</small></span><em class="tag load">Bermuatan</em></li>
+        <li class="ev"><time>11:52</time><span><b>Bongkar</b> · PT RAPP — Power Station<small>39 mnt di zona</small></span></li>
+        <li class="trip" data-trip="t2"><time>12:31</time><span><b>PT RAPP → Batu Ampar</b><small>209 km · 4 j 17 mnt · tanpa DO</small></span><em class="tag empty">Kosong</em></li>
+        <li class="ev"><time>16:48</time><span><b>Parkir</b> · Stockpile Batu Ampar<small>sampai pagi</small></span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- LAPORAN -->
+  <section class="screen" id="s-laporan" data-screen="laporan">
+    <div class="hero44">
+      <p class="eyebrow">30 hari · km tanpa muatan</p>
+      <p class="big"><span id="pct">44</span><sup>%</sup></p>
+      <p class="cap">2 778 dari 6 296 km truk berjalan <b>kosong</b></p>
+    </div>
+    <div class="legend">
+      <span><i class="lg-load"></i>Bermuatan</span>
+      <span><i class="lg-empty"></i>Kosong</span>
+      <span><i class="lg-col"></i>Tinggi = jam di zona</span>
+    </div>
+    <div class="sheet" id="lp-sheet">
+      <div class="grab"></div>
+      <h3 class="sec first">Potongan waktu · 30 hari</h3>
+      <div class="strata" id="strata">
+        <div class="st st-load" style="--h:69"><div class="st-l"><b>Bermuatan</b><small>69 j · 3 025 km</small></div><div class="st-r">48 %<small>dari km</small></div></div>
+        <div class="st st-empty" style="--h:63"><div class="st-l"><b>Kosong</b><small>63 j · 2 778 km</small></div><div class="st-r">44 %<small>dari km</small></div></div>
+        <div class="st st-stop" style="--h:97"><div class="st-l"><b>Berhenti</b><small>97 j · 79 j di zona · 17 j 30 di jalan</small></div><div class="st-r">0 km</div></div>
+      </div>
+      <div class="kpis">
+        <div><span class="v">6 296</span><span class="k">km total</span></div>
+        <div><span class="v">67</span><span class="k">trajet</span></div>
+        <div><span class="v">30</span><span class="k">ritase</span></div>
+        <div class="warn"><span class="v">2</span><span class="k">trajet tanpa DO</span></div>
+      </div>
+      <div class="cost-line">
+        <div><span class="k">Biaya 30 hari</span><span class="v">Rp 20,2 jt</span></div>
+        <div class="per"><span class="k">per km</span><span class="v">≈ Rp 3.200</span></div>
+      </div>
+      <h3 class="sec">Kolom = waktu di zona</h3>
+      <ol class="zones" id="zones"></ol>
+    </div>
+  </section>
+
+  <nav class="tabbar" aria-label="Navigasi">
+    <button class="tab on" data-go="posisi" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="18.5" rx="7" ry="2.6"/><path d="M12 17s-5-5.2-5-9a5 5 0 0 1 10 0c0 3.8-5 9-5 9z"/><circle cx="12" cy="8" r="1.7"/></svg><span>Posisi</span></button>
+    <button class="tab" data-go="riwayat" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4 4.5v3.6h3.6"/><path d="M12 8v4.2l2.8 1.8"/></svg><span>Riwayat</span></button>
+    <button class="tab" data-go="laporan" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5h16"/><path d="M6 19V12l2.5-1.2L11 12v7"/><path d="M13 19V6.5l2.5-1.2L18 6.5V19"/></svg><span>Laporan</span></button>
+  </nav>
+</div>
+<script src="routes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
