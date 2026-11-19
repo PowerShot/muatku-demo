@@ -44,6 +44,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
 .brandtxt span{font-size:11.5px;color:var(--ink-3);font-weight:600;margin-top:2px}
 .live{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px 0 9px;border-radius:999px;background:var(--surface);
   box-shadow:var(--shadow-card);font-size:12px;font-weight:700;color:var(--ink-2)}
+.brandtxt{min-width:0}.brandtxt b,.brandtxt span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lang{flex:none;margin-left:-6px;display:inline-flex;align-items:center;height:28px;padding:2px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow-card);
+  font-size:10.5px;font-weight:800;letter-spacing:.04em;color:var(--ink-3)}
+.lang span{min-width:22px;height:24px;padding:0 4px;display:grid;place-items:center;border-radius:999px;transition:background .2s,color .2s}
+.lang span.on{background:var(--brand);color:#fff}
 .live i{width:8px;height:8px;border-radius:50%;background:#22a352;box-shadow:0 0 0 0 rgb(34 163 82/.5);animation:pulse 2s infinite}
 @keyframes pulse{70%{box-shadow:0 0 0 7px rgb(34 163 82/0)}100%{box-shadow:0 0 0 0 rgb(34 163 82/0)}}
 
@@ -83,6 +88,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webki
 .seg{position:absolute;z-index:500;top:8px;left:8px;right:8px;display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px}
 .seg .lab{font-size:11px;font-weight:800;color:var(--ink-3);padding:0 6px 0 8px;letter-spacing:.02em;text-transform:uppercase}
 .seg button{flex:1;height:30px;border-radius:999px;font-size:12.5px;font-weight:700;color:var(--ink-2);transition:background .2s,color .2s;white-space:nowrap}
+html[lang=en] .seg button[data-g=median]{flex:1.3}
+#dc-t{white-space:nowrap}
 .seg button[aria-checked=true]{background:var(--brand);color:#fff;box-shadow:0 4px 10px -5px rgb(0 79 81/.9)}
 .mbtns{position:absolute;z-index:500;right:8px;top:52px;display:flex;flex-direction:column;gap:6px}
 .mbtn{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:var(--ink-2);transition:transform .16s var(--ease),background .2s,color .2s}
@@ -238,8 +245,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
 <div class="app" id="app">
   <header class="hdr">
     <div class="logo" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V7l6 5 6-5v10"/><circle cx="19" cy="15" r="2.2" stroke-dasharray="2.4 2"/></svg></div>
-    <div class="brandtxt"><b>Muatku · <em>Bayangan</em></b><span>Dump Truck 01 · BM 8921 KU</span></div>
+    <div class="brandtxt"><b>Muatku · <em>Bayangan</em></b><span data-i18n="brandSub">Dump Truck 01 · BM 8921 KU</span></div>
     <div class="live"><i></i>Live <span class="num" id="live-t">11:12</span></div>
+    <button class="lang" id="b-lang" type="button" aria-label="Ganti bahasa ke English"><span data-l="id" class="on">ID</span><span data-l="en">EN</span></button>
   </header>
 
   <section class="card hero" style="--i:0" aria-live="polite">
@@ -249,41 +257,41 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
     <div class="trip">
       <div class="rt"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="6" r="2.5"/><path d="M7.5 18H14a3.5 3.5 0 0 0 0-7h-4a3.5 3.5 0 0 1 0-7h6.5"/></svg><span>Batu Ampar → PT RAPP</span></div>
       <div class="eta">ETA ±12:34</div>
-      <div class="meta">dari 07:15 · 63 km lagi · 48 km/jam</div>
+      <div class="meta" data-i18n="tripMeta">dari 07:15 · 63 km lagi · 48 km/jam</div>
       <div class="meta2" id="h-geta">bayangan 12:23</div>
     </div>
   </section>
 
   <div class="mapdock" id="mapdock">
     <div class="mapcard" id="mapcard">
-      <div id="map" aria-label="Peta: truk dan bayangan"></div>
-      <div class="seg glass" role="radiogroup" aria-label="Pilih bayangan">
-        <span class="lab">Bayangan</span>
-        <button role="radio" aria-checked="true" data-g="median">Median 30 hr</button>
-        <button role="radio" aria-checked="false" data-g="best">Terbaik</button>
-        <button role="radio" aria-checked="false" data-g="kemarin">Kemarin</button>
+      <div id="map" data-i18n-aria="mapAria" aria-label="Peta: truk dan bayangan"></div>
+      <div class="seg glass" role="radiogroup" data-i18n-aria="segAria" aria-label="Pilih bayangan">
+        <span class="lab" data-i18n="ghost">Bayangan</span>
+        <button role="radio" aria-checked="true" data-g="median" data-i18n="gMedian">Median 30 hr</button>
+        <button role="radio" aria-checked="false" data-g="best" data-i18n="gBest">Terbaik</button>
+        <button role="radio" aria-checked="false" data-g="kemarin" data-i18n="gKemarin">Kemarin</button>
       </div>
       <div class="mbtns">
-        <button class="mbtn glass on" id="b-follow" aria-label="Ikuti truk dan bayangan" aria-pressed="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg></button>
-        <button class="mbtn glass" id="b-route" aria-label="Lihat seluruh rute"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h6.5a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7H16"/></svg></button>
-        <button class="mbtn glass" id="b-fs" aria-label="Peta layar penuh"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        <button class="mbtn glass on" id="b-follow" data-i18n-aria="followAria" aria-label="Ikuti truk dan bayangan" aria-pressed="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg></button>
+        <button class="mbtn glass" id="b-route" data-i18n-aria="routeAria" aria-label="Lihat seluruh rute"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h6.5a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7H16"/></svg></button>
+        <button class="mbtn glass" id="b-fs" data-i18n-aria="fsAria" aria-label="Peta layar penuh"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       </div>
       <div class="gapchip glass" id="gapchip" aria-live="polite"><span class="gd" id="gc-d">−</span><div><b id="gc-a">—</b><span id="gc-b">—</span></div></div>
-      <button class="fs-exit glass" id="fs-exit" aria-label="Keluar dari peta penuh"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>Keluar</button>
+      <button class="fs-exit glass" id="fs-exit" data-i18n-aria="fsExitAria" aria-label="Keluar dari peta penuh"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg><span data-i18n="fsExit">Keluar</span></button>
       <div class="mini glass">
-        <button class="tbtn pri" id="m-play" aria-label="Putar ulang perjalanan">▶</button>
-        <input type="range" id="m-range" min="0" max="330" step="1" value="330" aria-label="Geser waktu perjalanan">
+        <button class="tbtn pri" id="m-play" data-i18n-aria="replayAria" aria-label="Putar ulang perjalanan">▶</button>
+        <input type="range" id="m-range" min="0" max="330" step="1" value="330" data-i18n-aria="rangeAria" aria-label="Geser waktu perjalanan">
         <span class="mt num" id="m-t">11:12</span>
       </div>
     </div>
   </div>
 
   <section class="card" style="--i:1" id="race-card">
-    <div class="card-h"><h2>Posisi vs bayangan</h2><span class="muted" id="race-t">sekarang · 11:12</span></div>
+    <div class="card-h"><h2 data-i18n="raceH">Posisi vs bayangan</h2><span class="muted" id="race-t">sekarang · 11:12</span></div>
     <div class="race" id="race">
       <div class="bandcap"><span id="band-cap">rentang biasa</span></div>
-      <span class="ln" style="grid-row:2;grid-column:1">Truk</span><div class="track" style="grid-row:2;grid-column:2"><div class="fill real" id="f-real"></div><div class="knob" id="k-real"></div></div><span class="lv" id="v-real" style="grid-row:2;grid-column:3">—</span>
-      <span class="ln" style="grid-row:3;grid-column:1">Bayangan</span><div class="track" style="grid-row:3;grid-column:2"><div class="fill ghost" id="f-ghost"></div><div class="knob gh" id="k-ghost"></div></div><span class="lv" id="v-ghost" style="grid-row:3;grid-column:3">—</span>
+      <span class="ln" style="grid-row:2;grid-column:1" data-i18n="truck">Truk</span><div class="track" style="grid-row:2;grid-column:2"><div class="fill real" id="f-real"></div><div class="knob" id="k-real"></div></div><span class="lv" id="v-real" style="grid-row:2;grid-column:3">—</span>
+      <span class="ln" style="grid-row:3;grid-column:1" data-i18n="ghost">Bayangan</span><div class="track" style="grid-row:3;grid-column:2"><div class="fill ghost" id="f-ghost"></div><div class="knob gh" id="k-ghost"></div></div><span class="lv" id="v-ghost" style="grid-row:3;grid-column:3">—</span>
       <div class="bandov"><i id="band-ov"></i></div>
       <div class="axis" id="race-axis"></div>
     </div>
@@ -291,32 +299,32 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;heigh
   </section>
 
   <section class="card" style="--i:2" id="gap-card">
-    <div class="card-h"><h2>Selisih vs bayangan</h2>
-      <div class="ch-tools"><button class="tbtn" id="b-now" hidden aria-label="Kembali ke sekarang">↺</button><button class="tbtn pri" id="b-play" aria-label="Putar ulang perjalanan">▶ Putar ulang</button></div></div>
+    <div class="card-h"><h2 data-i18n="gapH">Selisih vs bayangan</h2>
+      <div class="ch-tools"><button class="tbtn" id="b-now" hidden data-i18n-aria="nowAria" aria-label="Kembali ke sekarang">↺</button><button class="tbtn pri" id="b-play" data-i18n-aria="replayAria" aria-label="Putar ulang perjalanan">▶ Putar ulang</button></div></div>
     <div class="readout" id="readout">—</div>
-    <svg id="chart" viewBox="0 0 334 214" role="img" aria-label="Grafik selisih waktu truk terhadap bayangan, geser untuk melihat waktu lain"></svg>
-    <div class="legend"><span><i class="lg-line"></i>Truk</span><span><i class="lg-dash"></i>Bayangan (0)</span><span><i class="lg-band"></i>Rentang biasa (P10–P90)</span><span><i class="lg-out"></i>Di luar rentang</span></div>
+    <svg id="chart" viewBox="0 0 334 214" role="img" data-i18n-aria="chartAria" aria-label="Grafik selisih waktu truk terhadap bayangan, geser untuk melihat waktu lain"></svg>
+    <div class="legend"><span><i class="lg-line"></i><span data-i18n="truck">Truk</span></span><span><i class="lg-dash"></i><span data-i18n="lgGhost">Bayangan (0)</span></span><span><i class="lg-band"></i><span data-i18n="lgBand">Rentang biasa (P10–P90)</span></span><span><i class="lg-out"></i><span data-i18n="lgOut">Di luar rentang</span></span></div>
     <div class="status" id="outnote" hidden><i></i><span></span></div>
-    <div class="hint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12h8M5 9l-3 3 3 3M19 9l3 3-3 3"/></svg>Geser grafik untuk memutar waktu — truk & bayangan ikut bergerak di peta.</div>
+    <div class="hint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12h8M5 9l-3 3 3 3M19 9l3 3-3 3"/></svg><span data-i18n="hint">Geser grafik untuk memutar waktu — truk & bayangan ikut bergerak di peta.</span></div>
   </section>
 
   <section class="card" style="--i:3" id="decomp">
-    <div class="card-h"><h2>Dari mana selisihnya?</h2><span class="muted" id="dc-t">sampai km 162 · 11:12</span></div>
-    <div class="wf-axis"><span>← lebih lambat</span><span>bayangan</span><span>lebih cepat →</span></div>
+    <div class="card-h"><h2 data-i18n="dcH">Dari mana selisihnya?</h2><span class="muted" id="dc-t">sampai km 162 · 11:12</span></div>
+    <div class="wf-axis"><span data-i18n="axSlow">← lebih lambat</span><span data-i18n="ghostLc">bayangan</span><span data-i18n="axFast">lebih cepat →</span></div>
     <div id="wf"></div>
   </section>
 
   <section class="card" style="--i:4" id="zones">
-    <div class="card-h"><h2>Di zona: hari ini vs biasanya</h2><span class="muted">30 hari · 18 perjalanan</span></div>
+    <div class="card-h"><h2 data-i18n="zonesH">Di zona: hari ini vs biasanya</h2><span class="muted" data-i18n="zonesMeta">30 hari · 18 perjalanan</span></div>
     <div id="zrows"></div>
   </section>
 
   <section class="card inapp" style="--i:5">
-    <h2>Di aplikasi</h2>
-    <div class="ia"><span class="iai"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span><div><b>Posisi</b> — truk bayangan transparan + chip « <span id="ia-chip">11 mnt lebih lambat</span> » di peta perjalanan berjalan.</div></div>
-    <div class="ia"><span class="iai"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></span><div><b>Riwayat › detail perjalanan</b> — blok « vs bayangan » : rincian selisih muat · berhenti · jalan.</div></div>
+    <h2 data-i18n="iaH">Di aplikasi</h2>
+    <div class="ia"><span class="iai"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span><div data-i18n-html="ia1"><b>Posisi</b> — truk bayangan transparan + chip « <span id="ia-chip">11 mnt lebih lambat</span> » di peta perjalanan berjalan.</div></div>
+    <div class="ia"><span class="iai"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></span><div data-i18n-html="ia2"><b>Riwayat › detail perjalanan</b> — blok « vs bayangan » : rincian selisih muat · berhenti · jalan.</div></div>
   </section>
-  <p class="foot">Simulasi: 18 perjalanan Batu Ampar → PT RAPP (30 hari) dibuat deterministik di sekitar angka demo; bayangan median = median tunggu, berhenti & laju per km. Rute OSRM asli · peta © OpenStreetMap.</p>
+  <p class="foot" data-i18n="foot">Simulasi: 18 perjalanan Batu Ampar → PT RAPP (30 hari) dibuat deterministik di sekitar angka demo; bayangan median = median tunggu, berhenti & laju per km. Rute OSRM asli · peta © OpenStreetMap.</p>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="route.js"></script>

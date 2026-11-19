@@ -6,6 +6,120 @@
   'use strict';
   const $ = (s) => document.querySelector(s);
   const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------------- i18n : ID (défaut) / EN — langue initiale : ?lang= > localStorage muatku.lang > id */
+  const THAN = { median: 'usual', best: 'the best trip', kemarin: 'yesterday' };
+  const LIKE = { median: 'as usual', best: 'like the best trip', kemarin: 'like yesterday' };
+  const I18N = {
+    id: {
+      docTitle: 'Muatku · Bayangan — perjalanan vs perjalanan biasa', brandSub: 'Dump Truck 01 · BM 8921 KU', langAria: 'Ganti bahasa ke English',
+      min: 'mnt', h: 'j', dec: ',', days: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'], months: ['Okt', 'Nov'],
+      tripMeta: 'dari 07:15 · 63 km lagi · 48 km/jam',
+      mapAria: 'Peta: truk dan bayangan', segAria: 'Pilih bayangan', ghost: 'Bayangan', gMedian: 'Median 30 hr', gBest: 'Terbaik', gKemarin: 'Kemarin',
+      followAria: 'Ikuti truk dan bayangan', routeAria: 'Lihat seluruh rute', fsAria: 'Peta layar penuh', fsExitAria: 'Keluar dari peta penuh', fsExit: 'Keluar',
+      replayAria: 'Putar ulang perjalanan', rangeAria: 'Geser waktu perjalanan', replay: 'Putar ulang', pause: 'Jeda', nowAria: 'Kembali ke sekarang',
+      raceH: 'Posisi vs bayangan', truck: 'Truk', gapH: 'Selisih vs bayangan',
+      chartAria: 'Grafik selisih waktu truk terhadap bayangan, geser untuk melihat waktu lain',
+      lgGhost: 'Bayangan (0)', lgBand: 'Rentang biasa (P10–P90)', lgOut: 'Di luar rentang',
+      hint: 'Geser grafik untuk memutar waktu — truk & bayangan ikut bergerak di peta.',
+      dcH: 'Dari mana selisihnya?', axSlow: '← lebih lambat', axFast: 'lebih cepat →', ghostLc: 'bayangan',
+      zonesH: 'Di zona: hari ini vs biasanya', zonesMeta: '30 hari · 18 perjalanan', iaH: 'Di aplikasi',
+      ia1: '<b>Posisi</b> — truk bayangan transparan + chip « <span id="ia-chip"></span> » di peta perjalanan berjalan.',
+      ia2: '<b>Riwayat › detail perjalanan</b> — blok « vs bayangan » : rincian selisih muat · berhenti · jalan.',
+      foot: 'Simulasi: 18 perjalanan Batu Ampar → PT RAPP (30 hari) dibuat deterministik di sekitar angka demo; bayangan median = median tunggu, berhenti & laju per km. Rute OSRM asli · peta © OpenStreetMap.',
+      pillNormal: 'Normal', pillUnusual: 'Di luar kebiasaan', pillIn: 'Dalam rentang biasa', pillOut: 'Di luar rentang biasa',
+      titleSame: 'Tepat seperti biasanya', stillNormal: ' — masih normal.',
+      titleVs: (c, d, slow) => `<span class="${c}">${d} lebih ${slow ? 'lambat' : 'cepat'}</span> dari biasanya`,
+      titleRef: (c, d, behind, ref) => `<span class="${c}">${d} ${behind ? 'di belakang' : 'lebih cepat dari'}</span> ${ref}.`,
+      gName_median: 'bayangan median · 18 perjalanan', gName_best: (d) => 'terbaik · ' + d, gName_kemarin: (d) => 'kemarin · ' + d,
+      gRef_best: 'perjalanan terbaik', gRef_kemarin: 'kemarin', gChip_median: 'Median', gChip_best: 'Terbaik', gChip_kemarin: 'Kemarin',
+      r_median: 'biasanya', r_best: 'terbaik', r_kemarin: 'kemarin', geta_median: 'bayangan', geta_best: 'terbaik', geta_kemarin: 'kemarin',
+      pMuat: (a, r, b) => `muat ${a} (${r} ${b})`, pStop: (a, r, b) => `berhenti ${a} (${r} ${b})`, pDrive: (a, r, b) => `laju ${a} km/jam (${r} ${b})`,
+      wMuat: 'saat muat', wStop: 'dari berhenti', wDrive: 'di jalan', subLongLoad: (a, r, b) => `muat lama: ${a}, ${r} ${b}`,
+      subBoth: (l, g, w) => `${l} — tapi ${g} terkejar ${w}.`, subLoss: (w, d, x) => `Selisih terbesar ${w}: ${d} — ${x}.`,
+      subGain: (w, d, x) => `Paling banyak didapat ${w}: ${d} — ${x}.`, subSame: 'Setiap tahap sama dengan bayangan.',
+      chipSame: 'tepat seperti biasa', chipVs: (d, slow) => `${d} lebih ${slow ? 'lambat' : 'cepat'}`,
+      mkMuat: 'Muat', mkBongkar: 'Bongkar', zM: 'M', zP: 'P', zB: 'B',
+      gcLevel: 'Sejajar dengan bayangan', gcGhostAhead: (k) => `Bayangan ${k} km di depan`, gcTruckAhead: (k) => `Truk ${k} km di depan bayangan`,
+      onTime: 'tepat waktu', slower: 'lebih lambat', faster: 'lebih cepat',
+      bandCap: (a, b) => `rentang biasa ${a}–${b} km`, raceNow: 'sekarang · ', raceAt: 'pukul ',
+      raceIn: (a, b) => `<b>Dalam rentang biasa.</b> Pada jam ini, 8 dari 10 perjalanan ada di km ${a}–${b}.`,
+      raceOut: (late) => `<b>Di luar rentang biasa</b> — ${late ? 'lebih lambat' : 'lebih cepat'} dari 9 dari 10 perjalanan pada jam ini.`,
+      cGhostStop: (d) => `bayangan berhenti ${d} mnt`, cTruckStop: (d) => `truk berhenti ${d} mnt`, cNow: 'sekarang', cBay: 'Bay.', cMuat: (d) => 'muat ' + d,
+      whyMuat: 'muat lebih lama dari biasanya', whyStop: 'berhenti lebih lama', whySlow: 'laju lebih lambat', whyFast: 'laju lebih cepat',
+      outWas: (a, b, why, more, back) => `<b>Sempat di luar rentang biasa</b> ${a}–${b} (${why})${more ? ` · +${more} kali lagi` : ''}. Sekarang ${back ? 'kembali normal' : 'masih di luar'}.`,
+      outNever: '<b>Selalu di dalam rentang biasa</b> sepanjang perjalanan.',
+      roWait: 'tunggu muat', roStop: (k) => `berhenti, km ${k}`, roLevel: 'sejajar bayangan', roOut: 'di luar rentang', roOk: 'normal',
+      roGap: (c, d, behind) => `<span class="${c}">${d} ${behind ? 'di belakang' : 'di depan'}</span>`,
+      wfMuat: 'Tunggu di zona muat', wfStop: 'Berhenti di jalan', wfDrive: 'Mengemudi', wfNotYet: 'belum berangkat', wfOnMap: 'Di peta ↑', wfShow: 'Lihat di peta',
+      wfRunning: (a, r, b) => `${a} berjalan · ${r} ${b}`, wfDriveSub: (a, r, b) => `laju ${a} vs ${r} ${b} km/jam`,
+      wfTotal: (now, c) => '= Selisih ' + (now ? 'sekarang' : 'pukul ' + c), wfTotSub: (d, behind) => `${d} ${behind ? 'di belakang' : 'di depan'} bayangan`,
+      wfBoth: 'Truk & bayangan', dcT: (k, c) => `sampai km ${k} · ${c}`,
+      coMuat: (d) => `Tunggu muat ${d}`, coVs: 'vs bayangan', coTruckStop: (d) => `Truk berhenti ${d} mnt`, coGhost: (d) => `Bayangan ${d} mnt`,
+      stToday: (d) => 'hari ini ' + d,
+      zLoad: 'Zona muat', zStop: 'Berhenti di jalan', zStopSub: '1× di km 96 · total per perjalanan', zUnl: 'Zona bongkar', zUnlSub: 'PT RAPP · antre + bongkar', zNotYet: 'belum tiba',
+      zv1: (n, d, k) => `Lebih lama dari <b>${n} dari 18</b> perjalanan bulan ini${d ? ` — <b>${d}</b> lebih lama dari ${tr('r_' + k)}` : ''}.`,
+      zv2: (n) => `Lebih lama dari <b>${n} dari 18</b> perjalanan — selisih kecil.`,
+      zv3: (k, a, e) => `Jika seperti ${tr('r_' + k)}: tiba ±${a}, selesai bongkar <b>±${e}</b>.`,
+    },
+    en: {
+      docTitle: 'Muatku · Bayangan — Ghost: this trip vs a normal trip', brandSub: 'Ghost trip · BM 8921 KU', langAria: 'Switch language to Bahasa Indonesia',
+      min: 'min', h: 'h', dec: '.', days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], months: ['Oct', 'Nov'],
+      tripMeta: 'left 07:15 · 63 km to go · 48 km/h',
+      mapAria: 'Map: truck and ghost', segAria: 'Choose the ghost', ghost: 'Ghost', gMedian: 'Median 30 days', gBest: 'Best', gKemarin: 'Yesterday',
+      followAria: 'Follow truck and ghost', routeAria: 'Show the whole route', fsAria: 'Full-screen map', fsExitAria: 'Exit full-screen map', fsExit: 'Exit',
+      replayAria: 'Replay the trip', rangeAria: 'Scrub through the trip', replay: 'Replay', pause: 'Pause', nowAria: 'Back to now',
+      raceH: 'Position vs ghost', truck: 'Truck', gapH: 'Gap vs ghost',
+      chartAria: 'Chart of the truck’s time gap vs the ghost; drag to see other times',
+      lgGhost: 'Ghost (0)', lgBand: 'Usual range (P10–P90)', lgOut: 'Outside range',
+      hint: 'Drag the chart to scrub through time — the truck & ghost move on the map too.',
+      dcH: 'Where does the gap come from?', axSlow: '← slower', axFast: 'faster →', ghostLc: 'ghost',
+      zonesH: 'At the zones: today vs usual', zonesMeta: '30 days · 18 trips', iaH: 'In the app',
+      ia1: '<b>Position</b> — a translucent ghost truck + a “<span id="ia-chip"></span>” chip on the live trip map.',
+      ia2: '<b>History › trip details</b> — a “vs ghost” block: the gap split into loading · stops · driving.',
+      foot: 'Simulation: 18 Batu Ampar → PT RAPP trips (30 days), generated deterministically around the demo figures; median ghost = median wait, stops & pace per km. Real OSRM route · map © OpenStreetMap.',
+      pillNormal: 'Normal', pillUnusual: 'Unusual', pillIn: 'Within usual range', pillOut: 'Outside usual range',
+      titleSame: 'Right on the usual pace', stillNormal: ' — still normal.',
+      titleVs: (c, d, slow) => `<span class="${c}">${d} ${slow ? 'slower' : 'faster'}</span> than usual`,
+      titleRef: (c, d, behind, ref) => `<span class="${c}">${d} ${behind ? 'behind' : 'ahead of'}</span> ${ref}.`,
+      gName_median: 'median ghost · 18 trips', gName_best: (d) => 'best trip · ' + d, gName_kemarin: (d) => 'yesterday · ' + d,
+      gRef_best: 'the best trip', gRef_kemarin: 'yesterday’s trip', gChip_median: 'Median', gChip_best: 'Best', gChip_kemarin: 'Yesterday',
+      r_median: 'usually', r_best: 'best', r_kemarin: 'yesterday', geta_median: 'ghost', geta_best: 'best', geta_kemarin: 'yesterday',
+      pMuat: (a, r, b) => `loading ${a} (${r} ${b})`, pStop: (a, r, b) => `stops ${a} (${r} ${b})`, pDrive: (a, r, b) => `speed ${a} km/h (${r} ${b})`,
+      wMuat: 'at loading', wStop: 'at stops', wDrive: 'on the road', subLongLoad: (a, r, b) => `loading took ${a} (${r} ${b})`,
+      subBoth: (l, g, w, n) => `${l}, but ${g} ${n === 1 ? 'was' : 'were'} made up ${w}.`, subLoss: (w, d, x) => `Biggest gap ${w}: ${d} — ${x}.`,
+      subGain: (w, d, x) => `Most time gained ${w}: ${d} — ${x}.`, subSame: 'Every stage matches the ghost.',
+      chipSame: 'on the usual pace', chipVs: (d, slow) => `${d} ${slow ? 'slower' : 'faster'}`,
+      mkMuat: 'Loading', mkBongkar: 'Unloading', zM: 'L', zP: 'S', zB: 'U',
+      gcLevel: 'Level with the ghost', gcGhostAhead: (k) => `Ghost ${k} km ahead`, gcTruckAhead: (k) => `Truck ${k} km ahead of the ghost`,
+      onTime: 'on time', slower: 'slower', faster: 'faster',
+      bandCap: (a, b) => `usual range ${a}–${b} km`, raceNow: 'now · ', raceAt: 'at ',
+      raceIn: (a, b) => `<b>Within the usual range.</b> At this time, 8 in 10 trips are at km ${a}–${b}.`,
+      raceOut: (late) => `<b>Outside the usual range</b> — ${late ? 'slower' : 'faster'} than 9 in 10 trips at this time.`,
+      cGhostStop: (d) => `ghost stopped ${d} min`, cTruckStop: (d) => `truck stopped ${d} min`, cNow: 'now', cBay: 'Ghost', cMuat: (d) => 'loading ' + d,
+      whyMuat: 'longer loading than usual', whyStop: 'longer stop', whySlow: 'slower driving', whyFast: 'faster driving',
+      outWas: (a, b, why, more, back) => `<b>Briefly outside the usual range</b> ${a}–${b} (${why})${more ? ` · +${more} more` : ''}. ${back ? 'Back to normal now' : 'Still outside now'}.`,
+      outNever: '<b>Always within the usual range</b> throughout the trip.',
+      roWait: 'waiting to load', roStop: (k) => `stopped, km ${k}`, roLevel: 'level with the ghost', roOut: 'outside range', roOk: 'normal',
+      roGap: (c, d, behind) => `<span class="${c}">${d} ${behind ? 'behind' : 'ahead'}</span>`,
+      wfMuat: 'Waiting at the loading zone', wfStop: 'Stops on the road', wfDrive: 'Driving', wfNotYet: 'not departed yet', wfOnMap: 'On the map ↑', wfShow: 'Show on map',
+      wfRunning: (a, r, b) => `${a} so far · ${r} ${b}`, wfDriveSub: (a, r, b) => `${a} km/h vs ${r} ${b}`,
+      wfTotal: (now, c) => '= Gap ' + (now ? 'now' : 'at ' + c), wfTotSub: (d, behind) => `${d} ${behind ? 'behind' : 'ahead of'} the ghost`,
+      wfBoth: 'Truck & ghost', dcT: (k, c) => `to km ${k} · ${c}`,
+      coMuat: (d) => `Loading wait ${d}`, coVs: 'vs ghost', coTruckStop: (d) => `Truck stopped ${d} min`, coGhost: (d) => `Ghost ${d} min`,
+      stToday: (d) => 'today ' + d,
+      zLoad: 'Loading zone', zStop: 'Stops on the road', zStopSub: '1× at km 96 · total per trip', zUnl: 'Unloading zone', zUnlSub: 'PT RAPP · queue + unloading', zNotYet: 'not arrived yet',
+      zv1: (n, d, k) => `Longer than <b>${n} of 18</b> trips this month${d ? ` — <b>${d}</b> longer than ${THAN[k]}` : ''}.`,
+      zv2: (n) => `Longer than <b>${n} of 18</b> trips — a small difference.`,
+      zv3: (k, a, e) => `If it goes ${LIKE[k]}: arrival ±${a}, unloading done <b>±${e}</b>.`,
+    },
+  };
+  let LANG = (() => {
+    const q = new URLSearchParams(location.search).get('lang'); if (q === 'id' || q === 'en') return q;
+    try { const s = localStorage.getItem('muatku.lang'); if (s === 'id' || s === 'en') return s; } catch (e) { /* stockage indisponible */ }
+    return 'id';
+  })();
+  function tr(k, ...a) { const v = k in I18N[LANG] ? I18N[LANG][k] : I18N.id[k]; return typeof v === 'function' ? v(...a) : v; }
   const STEP = 0.5, KM = 225, N = KM / STEP + 1;
   const T0 = 5 * 60 + 42; // 05:42 : arrivée en zone de chargement (départ commun réel / fantôme)
   const NOW = 330; // 11:12
@@ -13,11 +127,10 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const pad = (n) => String(n).padStart(2, '0');
   const clock = (t) => { const m = Math.round(T0 + t); return pad(Math.floor(m / 60) % 24) + ':' + pad(m % 60); };
-  const dur = (m) => { m = Math.round(Math.abs(m)); if (m < 60) return m + ' mnt'; return Math.floor(m / 60) + ' j ' + pad(m % 60); };
-  const sgn = (g) => (Math.round(g) === 0 ? '±0 mnt' : (g > 0 ? '+' : '−') + dur(g));
-  const fk = (x) => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
-  const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-  const dayLbl = (iso) => { const [y, m, d] = iso.split('-').map(Number); return DAYS[new Date(y, m - 1, d).getDay()] + ' ' + d + ' ' + (m === 11 ? 'Nov' : 'Okt'); };
+  const dur = (m) => { m = Math.round(Math.abs(m)); if (m < 60) return m + ' ' + tr('min'); return Math.floor(m / 60) + ' ' + tr('h') + ' ' + pad(m % 60); };
+  const sgn = (g) => (Math.round(g) === 0 ? '±0 ' + tr('min') : (g > 0 ? '+' : '−') + dur(g));
+  const fk = (x) => (Math.round(x * 10) / 10).toFixed(1).replace('.', tr('dec'));
+  const dayLbl = (iso) => { const [y, m, d] = iso.split('-').map(Number); return tr('days')[new Date(y, m - 1, d).getDay()] + ' ' + d + ' ' + tr('months')[m === 11 ? 1 : 0]; };
 
   /* ---------------- allure de base (min/km) : piste du stockpile, bourgs, approche RAPP */
   const shape = (x) => (x < 6 ? 2.6 : x < 20 ? 1.8 : x < 60 ? 1.45 : x < 70 ? 2.2 : x < 130 ? 1.4 : x < 140 ? 2.0 : x < 162 ? 1.5 : x < 200 ? 1.25 : x < 215 ? 1.35 : 2.0);
@@ -85,11 +198,8 @@
   ];
   const TRIPS = RAW.map(([d, w, f, st, un]) => sim({ id: d, date: d, wait: w, stops: st, f: () => f, unload: un }));
   const MEDIAN = sim({ id: 'median', wait: 52, stops: [[88, 17]], f: () => 1, unload: 47 });
-  const GH = {
-    median: { T: MEDIAN, ref: 'biasanya', name: 'bayangan median · 18 perjalanan', chip: 'Median' },
-    best: { T: TRIPS[0], ref: 'perjalanan terbaik', name: 'terbaik · ' + dayLbl(TRIPS[0].date), chip: 'Terbaik' },
-    kemarin: { T: TRIPS[17], ref: 'kemarin', name: 'kemarin · ' + dayLbl(TRIPS[17].date), chip: 'Kemarin' },
-  };
+  const GH = { median: { T: MEDIAN }, best: { T: TRIPS[0] }, kemarin: { T: TRIPS[17] } };
+  const ghName = (k) => tr('gName_' + k, GH[k].T.date ? dayLbl(GH[k].T.date) : ''), rr = () => tr('r_' + gk);
 
   /* ---------------- état */
   let gk = 'median', G = MEDIAN, t = NOW, sel = null, follow = true, playing = false;
@@ -126,35 +236,34 @@
   /* ---------------- conclusion */
   function conclusion() {
     const d = decomp(REAL, G, NOW), g = Math.round(d.g), [lo, hi] = bandAt(NOW), inBand = d.g >= lo - 0.5 && d.g <= hi + 0.5;
-    const meta = GH[gk];
     const pill = $('#h-pill');
     let title;
     if (gk === 'median') {
       pill.className = 'pill ' + (inBand ? 'ok' : 'warn');
-      pill.innerHTML = '<i></i>' + (inBand ? 'Normal' : 'Di luar kebiasaan');
-      title = Math.abs(g) <= 3 ? 'Tepat seperti biasanya' : `<span class="${g < 0 ? 'neg' : 'pos'}">${dur(g)} lebih ${g < 0 ? 'lambat' : 'cepat'}</span> dari biasanya`;
-      title += inBand ? ' — masih normal.' : '.';
+      pill.innerHTML = '<i></i>' + tr(inBand ? 'pillNormal' : 'pillUnusual');
+      title = Math.abs(g) <= 3 ? tr('titleSame') : tr('titleVs', g < 0 ? 'neg' : 'pos', dur(g), g < 0);
+      title += inBand ? tr('stillNormal') : '.';
     } else {
-      pill.className = 'pill neu'; pill.innerHTML = '<i></i>' + (inBand ? 'Dalam rentang biasa' : 'Di luar rentang biasa');
-      title = `<span class="${g < 0 ? 'neg' : 'pos'}">${dur(g)} ${g < 0 ? 'di belakang' : 'lebih cepat dari'}</span> ${meta.ref}.`;
+      pill.className = 'pill neu'; pill.innerHTML = '<i></i>' + tr(inBand ? 'pillIn' : 'pillOut');
+      title = tr('titleRef', g < 0 ? 'neg' : 'pos', dur(g), g < 0, tr('gRef_' + gk));
     }
-    $('#h-ref').textContent = 'vs ' + meta.name;
+    $('#h-ref').textContent = 'vs ' + ghName(gk);
     $('#h-title').innerHTML = title;
-    const r = gk === 'median' ? 'biasanya' : gk === 'best' ? 'terbaik' : 'kemarin';
+    const r = rr();
     const parts = [
-      { k: 'muat', v: d.muat, txt: `muat ${dur(d.wR)} (${r} ${dur(d.wG)})`, where: 'saat muat' },
-      { k: 'stop', v: d.stop, txt: `berhenti ${dur(d.sR)} (${r} ${dur(d.sG)})`, where: 'dari berhenti' },
-      { k: 'drive', v: d.drive, txt: `laju ${Math.round((d.x / d.mR) * 60)} km/jam (${r} ${Math.round((d.x / d.mG) * 60)})`, where: 'di jalan' },
+      { k: 'muat', v: d.muat, txt: tr('pMuat', dur(d.wR), r, dur(d.wG)), where: tr('wMuat') },
+      { k: 'stop', v: d.stop, txt: tr('pStop', dur(d.sR), r, dur(d.sG)), where: tr('wStop') },
+      { k: 'drive', v: d.drive, txt: tr('pDrive', Math.round((d.x / d.mR) * 60), r, Math.round((d.x / d.mG) * 60)), where: tr('wDrive') },
     ];
     const loss = parts.filter((p) => p.v <= -1).sort((a, b) => a.v - b.v)[0], gain = parts.filter((p) => p.v >= 1).sort((a, b) => b.v - a.v)[0];
     let sub;
-    if (loss && gain) sub = cap(loss.k === 'muat' ? `muat lama: ${dur(d.wR)}, ${r} ${dur(d.wG)}` : loss.txt) + ` — tapi ${dur(gain.v)} terkejar ${gain.where}.`;
-    else if (loss) sub = `Selisih terbesar ${loss.where}: ${dur(loss.v)} — ${loss.txt}.`;
-    else if (gain) sub = `Paling banyak didapat ${gain.where}: ${dur(gain.v)} — ${gain.txt}.`;
-    else sub = 'Setiap tahap sama dengan bayangan.';
+    if (loss && gain) sub = tr('subBoth', cap(loss.k === 'muat' ? tr('subLongLoad', dur(d.wR), r, dur(d.wG)) : loss.txt), dur(gain.v), gain.where, Math.round(Math.abs(gain.v)));
+    else if (loss) sub = tr('subLoss', loss.where, dur(loss.v), loss.txt);
+    else if (gain) sub = tr('subGain', gain.where, dur(gain.v), gain.txt);
+    else sub = tr('subSame');
     $('#h-sub').textContent = sub;
-    $('#h-geta').textContent = (gk === 'median' ? 'bayangan ' : gk === 'best' ? 'terbaik ' : 'kemarin ') + clock(G.arrive);
-    $('#ia-chip').textContent = (Math.abs(g) <= 3 ? 'tepat seperti biasa' : `${dur(g)} lebih ${g < 0 ? 'lambat' : 'cepat'}`);
+    $('#h-geta').textContent = tr('geta_' + gk) + ' ' + clock(G.arrive);
+    $('#ia-chip').textContent = (Math.abs(g) <= 3 ? tr('chipSame') : tr('chipVs', dur(g), g < 0));
   }
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -177,16 +286,19 @@
   const TRUCK = '<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1.5 6.5h11l-1.4 8H1.5z"/><path d="M13.6 9.2h4.1l3 3.4V15h-7.1z"/><rect x="1.5" y="14.2" width="19.2" height="1.6" rx=".6"/><circle cx="6" cy="17.6" r="2"/><circle cx="17" cy="17.6" r="2"/></svg>';
   L.polyline(PTS, { color: '#fff', weight: 9, opacity: 0.9, interactive: false }).addTo(map);
   L.polyline(PTS, { color: '#bdb4a8', weight: 5, opacity: 0.95, interactive: false }).addTo(map);
-  const zone = (k, kind, name, unl) => {
+  const zIcon = (name, unl) => L.divIcon({ className: 'zl-ic0', iconSize: [0, 0], html: `<div class="zl ${unl ? 'unl' : 'below'}"><span class="zi">${tr(unl ? 'zB' : 'zM')}</span><span class="zk">${tr(unl ? 'mkBongkar' : 'mkMuat')}</span>${name}</div>` });
+  const ZMK = [];
+  const zone = (k, name, unl) => {
     L.circle(ll(k), { radius: 650, color: unl ? '#004f51' : '#007879', weight: 1.5, fillColor: '#007879', fillOpacity: 0.12, interactive: false }).addTo(map);
-    L.marker(ll(k), { interactive: false, icon: L.divIcon({ className: 'zl-ic0', iconSize: [0, 0], html: `<div class="zl ${unl ? 'unl' : 'below'}"><span class="zi">${unl ? 'B' : 'M'}</span><span class="zk">${kind}</span>${name}</div>` }) }).addTo(map);
+    ZMK.push([L.marker(ll(k), { interactive: false, icon: zIcon(name, unl) }).addTo(map), name, unl]);
   };
-  zone(0, 'Muat', 'Batu Ampar', false); zone(KM, 'Bongkar', 'PT RAPP', true);
+  zone(0, 'Batu Ampar', false); zone(KM, 'PT RAPP', true);
   const traveled = L.polyline([], { color: '#007879', weight: 5.5, opacity: 1, interactive: false }).addTo(map);
   const gapLine = L.polyline([], { color: '#dd9314', weight: 7, opacity: 0.85, lineCap: 'butt', dashArray: '1 9', interactive: false }).addTo(map);
   const stopLayer = L.layerGroup().addTo(map);
   const hlLayer = L.layerGroup().addTo(map);
-  const ghostM = L.marker(ll(0), { interactive: false, zIndexOffset: 500, icon: L.divIcon({ className: 'tk-ic', iconSize: [44, 44], iconAnchor: [22, 22], html: `<div class="tk gh"><div class="tk-disc">${TRUCK}</div><span class="tk-tag">Bayangan</span></div>` }) }).addTo(map);
+  const ghIcon = () => L.divIcon({ className: 'tk-ic', iconSize: [44, 44], iconAnchor: [22, 22], html: `<div class="tk gh"><div class="tk-disc">${TRUCK}</div><span class="tk-tag">${tr('ghost')}</span></div>` });
+  const ghostM = L.marker(ll(0), { interactive: false, zIndexOffset: 500, icon: ghIcon() }).addTo(map);
   const realM = L.marker(ll(0), { interactive: false, zIndexOffset: 1000, icon: L.divIcon({ className: 'tk-ic', iconSize: [44, 44], iconAnchor: [22, 22], html: `<div class="tk rl"><div class="tk-disc">${TRUCK}</div><span class="tk-tag">BM 8921 KU</span></div>` }) }).addTo(map);
   const PADTL = [24, 70], PADBR = [60, 84];
   const LOC = { paddingTopLeft: [16, 58], paddingBottomRight: [56, 18] };
@@ -224,8 +336,8 @@
     const near = Math.abs(dk) < 0.3;
     chip.className = 'gapchip glass ' + (Math.round(g) === 0 ? 'zero' : g > 0 ? 'pos' : 'neg');
     $('#gc-d').textContent = sgn(g);
-    $('#gc-a').textContent = near ? 'Sejajar dengan bayangan' : dk > 0 ? `Bayangan ${fk(dk)} km di depan` : `Truk ${fk(-dk)} km di depan bayangan`;
-    $('#gc-b').textContent = (Math.round(g) === 0 ? 'tepat waktu' : `${g < 0 ? 'lebih lambat' : 'lebih cepat'}`) + ' vs ' + GH[gk].chip.toLowerCase() + ' · ' + clock(t);
+    $('#gc-a').textContent = near ? tr('gcLevel') : dk > 0 ? tr('gcGhostAhead', fk(dk)) : tr('gcTruckAhead', fk(-dk));
+    $('#gc-b').textContent = (Math.round(g) === 0 ? tr('onTime') : tr(g < 0 ? 'slower' : 'faster')) + ' vs ' + tr('gChip_' + gk).toLowerCase() + ' · ' + clock(t);
   }
 
   /* ---------------- barre double */
@@ -237,14 +349,12 @@
     $('#f-ghost').style.width = pct(xg) + '%'; $('#k-ghost').style.left = pct(xg) + '%';
     $('#v-real').textContent = Math.round(xr) + ' km'; $('#v-ghost').textContent = Math.round(xg) + ' km';
     const ov = $('#band-ov'); ov.style.left = pct(a) + '%'; ov.style.width = Math.max(pct(b - a), 1.2) + '%';
-    const capEl = $('#band-cap'); capEl.textContent = `rentang biasa ${Math.round(a)}–${Math.round(b)} km`; capEl.style.left = clamp(pct((a + b) / 2), 22, 78) + '%';
-    $('#race-t').textContent = (t === NOW ? 'sekarang · ' : 'pukul ') + clock(t);
+    const capEl = $('#band-cap'); capEl.textContent = tr('bandCap', Math.round(a), Math.round(b)); capEl.style.left = clamp(pct((a + b) / 2), 22, 78) + '%';
+    $('#race-t').textContent = tr(t === NOW ? 'raceNow' : 'raceAt') + clock(t);
     const st = $('#race-status'), inside = xr >= a - 0.3 && xr <= b + 0.3;
     st.className = 'status' + (inside ? '' : ' warn');
     const late = xr < a;
-    st.querySelector('span').innerHTML = inside
-      ? `<b>Dalam rentang biasa.</b> Pada jam ini, 8 dari 10 perjalanan ada di km ${Math.round(a)}–${Math.round(b)}.`
-      : `<b>Di luar rentang biasa</b> — ${late ? 'lebih lambat' : 'lebih cepat'} dari 9 dari 10 perjalanan pada jam ini.`;
+    st.querySelector('span').innerHTML = inside ? tr('raceIn', Math.round(a), Math.round(b)) : tr('raceOut', late);
   }
 
   /* ---------------- graphique de l'écart */
@@ -254,7 +364,7 @@
   const yS = (g) => PT + ((gmax - g) / (gmax - gmin)) * (CH - PT - PB);
   const svg = $('#chart');
   const el = (tag, at, txt) => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in at) e.setAttribute(k, at[k]); if (txt != null) e.textContent = txt; return e; };
-  function drawChart() {
+  function drawChart(quiet) {
     const { real, lo, hi, out } = C;
     const iNow = SAMP.indexOf(NOW);
     const vis = [...real.slice(0, iNow + 1), ...lo, ...hi, 0];
@@ -270,7 +380,7 @@
       svg.appendChild(el('line', { x1: PL, x2: CW - PR, y1: yS(v), y2: yS(v), stroke: '#efe9e2', 'stroke-width': 1 }));
       svg.appendChild(el('text', { x: PL - 6, y: yS(v) + 3.5, 'text-anchor': 'end', 'font-size': 10, 'font-weight': 600, fill: '#6b655f' }, v === 0 ? '0' : (v > 0 ? '+' : '−') + Math.abs(v)));
     }
-    svg.appendChild(el('text', { x: 2, y: PT - 7, 'font-size': 9.5, 'font-weight': 700, fill: '#6b655f' }, 'mnt'));
+    svg.appendChild(el('text', { x: 2, y: PT - 7, 'font-size': 9.5, 'font-weight': 700, fill: '#6b655f' }, tr('min')));
     // surlignage (décomposition)
     const hl = el('g', { id: 'hl' }); svg.appendChild(hl);
     // bande
@@ -281,7 +391,7 @@
     // fantôme = 0
     svg.appendChild(el('line', { x1: PL, x2: CW - PR, y1: yS(0), y2: yS(0), stroke: '#006264', 'stroke-width': 1.6, 'stroke-dasharray': '5 4' }));
     const gl = Math.min(xS(G.arrive), CW - PR);
-    svg.appendChild(el('text', { x: gl - 2, y: yS(0) - 5, 'text-anchor': 'end', 'font-size': 10, 'font-weight': 800, fill: '#006264' }, 'bayangan'));
+    svg.appendChild(el('text', { x: gl - 2, y: yS(0) - 5, 'text-anchor': 'end', 'font-size': 10, 'font-weight': 800, fill: '#006264' }, tr('ghostLc')));
     if (G.arrive <= TMAX) {
       svg.appendChild(el('circle', { cx: xS(G.arrive), cy: yS(0), r: 3.5, fill: '#fff', stroke: '#006264', 'stroke-width': 1.6 }));
     }
@@ -300,7 +410,7 @@
       SAMP.forEach((s, i) => { if (s >= r.a - 2 && s <= r.b + 2 && s <= NOW) d += (d ? 'L' : 'M') + xS(s).toFixed(1) + ',' + yS(real[i]).toFixed(1); });
       svg.appendChild(el('path', { d, fill: 'none', stroke: '#dd9314', 'stroke-width': 3.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
     }
-    if (!RM) { const L0 = rp.getTotalLength(); rp.style.strokeDasharray = L0; rp.style.strokeDashoffset = L0; rp.getBoundingClientRect(); rp.style.transition = 'stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1)'; rp.style.strokeDashoffset = 0; setTimeout(() => { rp.style.strokeDasharray = ''; }, 1200); }
+    if (!RM && !quiet) { const L0 = rp.getTotalLength(); rp.style.strokeDasharray = L0; rp.style.strokeDashoffset = L0; rp.getBoundingClientRect(); rp.style.transition = 'stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1)'; rp.style.strokeDashoffset = 0; setTimeout(() => { rp.style.strokeDasharray = ''; }, 1200); }
     // annotations : creux + maintenant
     let iMin = 0; for (let i = 0; i <= iNow; i++) if (real[i] < real[iMin]) iMin = i;
     let iMax = 0; for (let i = 0; i <= iNow; i++) if (real[i] > real[iMax]) iMax = i;
@@ -312,11 +422,11 @@
     if (real[iMin] < -3) ann(iMin, true, `${sgn(real[iMin])} · ${clock(SAMP[iMin])}`);
     if (real[iMax] > 3 && iMax !== iNow) ann(iMax, false, `${sgn(real[iMax])} · ${clock(SAMP[iMax])}`);
     const tag = (x, y, txt, col) => svg.appendChild(el('text', { x: clamp(x, PL + 40, CW - PR - 40), y, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 700, fill: col, stroke: '#fff', 'stroke-width': 3, 'paint-order': 'stroke' }, txt));
-    for (const [k, d] of G.stops) { const tr = REAL.en[Math.round(k / STEP)]; if (tr <= NOW) tag(xS(tr), Math.min(yS(gap(REAL, G, tr + 0.5)) - 9, yS(0) - 6), `bayangan berhenti ${d} mnt`, '#006264'); }
-    for (const [k, d] of REAL.stops) { const a0 = REAL.en[Math.round(k / STEP)]; if (a0 <= NOW) tag(xS(a0 + d / 2) + 6, yS(gap(REAL, G, a0 + d)) + 18, `truk berhenti ${d} mnt`, '#57504a'); }
+    for (const [k, d] of G.stops) { const t1 = REAL.en[Math.round(k / STEP)]; if (t1 <= NOW) tag(xS(t1), Math.min(yS(gap(REAL, G, t1 + 0.5)) - 9, yS(0) - 6), tr('cGhostStop', d), '#006264'); }
+    for (const [k, d] of REAL.stops) { const a0 = REAL.en[Math.round(k / STEP)]; if (a0 <= NOW) tag(xS(a0 + d / 2) + 6, yS(gap(REAL, G, a0 + d)) + 18, tr('cTruckStop', d), '#57504a'); }
     const gNow = real[iNow];
     svg.appendChild(el('line', { x1: xS(NOW), x2: xS(NOW), y1: PT - 6, y2: CH - PB + 26, stroke: '#211b16', 'stroke-width': 1, 'stroke-dasharray': '2 3', opacity: 0.5 }));
-    svg.appendChild(el('text', { x: xS(NOW), y: PT - 8, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 800, fill: '#57504a' }, 'sekarang'));
+    svg.appendChild(el('text', { x: xS(NOW), y: PT - 8, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 800, fill: '#57504a' }, tr('cNow')));
     svg.appendChild(el('circle', { cx: xS(NOW), cy: yS(gNow), r: 4.5, fill: '#007879', stroke: '#fff', 'stroke-width': 2 }));
     svg.appendChild(el('text', { x: xS(NOW) + 4, y: yS(gNow) + (gNow < 0 ? 17 : -10), 'text-anchor': 'start', 'font-size': 11, 'font-weight': 800, fill: '#211b16', stroke: '#fff', 'stroke-width': 3, 'paint-order': 'stroke' }, sgn(gNow)));
     // bandes de phases : truk / bayangan
@@ -329,11 +439,11 @@
       rect(0, Math.min(T.wait, end), ghost ? '#4f9e9c' : '#004f51');
       for (const [k, d] of T.stops) { const a = T.en[Math.round(k / STEP)]; if (a < end) rect(a, Math.min(a + d, end), ghost ? '#a49b90' : '#57504a'); }
       if (!ghost) { g.appendChild(el('rect', { x: xS(NOW), y, width: Math.max(xS(Math.min(REAL.arrive, TMAX)) - xS(NOW), 0), height: 8, rx: 2, fill: 'url(#hatch)' })); }
-      g.appendChild(el('text', { x: PL - 6, y: y + 7, 'text-anchor': 'end', 'font-size': 9, 'font-weight': 700, fill: '#6b655f' }, ghost ? 'Bay.' : 'Truk'));
+      g.appendChild(el('text', { x: PL - 6, y: y + 7, 'text-anchor': 'end', 'font-size': 9, 'font-weight': 700, fill: '#6b655f' }, tr(ghost ? 'cBay' : 'truck')));
       svg.appendChild(g);
     };
     phases(REAL, yT, false); phases(G, yG, true);
-    svg.appendChild(el('text', { x: xS(REAL.wait / 2), y: yT - 3, 'text-anchor': 'middle', 'font-size': 9, 'font-weight': 800, fill: '#004f51' }, 'muat ' + dur(REAL.wait)));
+    svg.appendChild(el('text', { x: xS(REAL.wait / 2), y: yT - 3, 'text-anchor': 'middle', 'font-size': 9, 'font-weight': 800, fill: '#004f51' }, tr('cMuat', dur(REAL.wait))));
     // heures
     for (let h = 6; h <= 12; h++) {
       const s = h * 60 - T0; if (s < 0 || s > TMAX) continue;
@@ -348,10 +458,10 @@
     // note hors bande
     const on = $('#outnote');
     if (out.length) {
-      const r = out[0], ph = phaseOf(REAL, r.a + 1), why = ph === 'muat' ? 'muat lebih lama dari biasanya' : ph === 'stop' ? 'berhenti lebih lama' : (r.low ? 'laju lebih lambat' : 'laju lebih cepat');
+      const r = out[0], ph = phaseOf(REAL, r.a + 1), why = tr(ph === 'muat' ? 'whyMuat' : ph === 'stop' ? 'whyStop' : (r.low ? 'whySlow' : 'whyFast'));
       on.hidden = false; on.className = 'status warn';
-      on.querySelector('span').innerHTML = `<b>Sempat di luar rentang biasa</b> ${clock(r.a)}–${clock(r.b)} (${why})${out.length > 1 ? ` · +${out.length - 1} kali lagi` : ''}. Sekarang ${C.real[iNow] >= C.lo[iNow] - 0.5 && C.real[iNow] <= C.hi[iNow] + 0.5 ? 'kembali normal' : 'masih di luar'}.`;
-    } else { on.hidden = false; on.className = 'status'; on.querySelector('span').innerHTML = '<b>Selalu di dalam rentang biasa</b> sepanjang perjalanan.'; }
+      on.querySelector('span').innerHTML = tr('outWas', clock(r.a), clock(r.b), why, out.length - 1, C.real[iNow] >= C.lo[iNow] - 0.5 && C.real[iNow] <= C.hi[iNow] + 0.5);
+    } else { on.hidden = false; on.className = 'status'; on.querySelector('span').innerHTML = tr('outNever'); }
     drawHL(); updateCursor();
   }
   function updateCursor() {
@@ -361,9 +471,9 @@
     c.setAttribute('cx', xS(s)); c.setAttribute('cy', yS(g));
     $('#cur').style.opacity = t === NOW ? 0 : 1;
     const ph = phaseOf(REAL, s), x = pos(REAL, s), [lo, hi] = bandAt(s), outB = g < lo - 0.5 || g > hi + 0.5;
-    const where = ph === 'muat' ? 'tunggu muat' : ph === 'stop' ? `berhenti, km ${Math.round(x)}` : `km ${Math.round(x)}`;
-    const gt = Math.round(g) === 0 ? 'sejajar bayangan' : `<span class="${g < 0 ? 'neg' : 'pos'}">${dur(g)} ${g < 0 ? 'di belakang' : 'di depan'}</span>`;
-    $('#readout').innerHTML = `<b>${clock(s)}</b> · ${where} · ${gt}` + (outB ? ' <span class="pill warn"><i></i>di luar rentang</span>' : ' <span class="pill ok"><i></i>normal</span>');
+    const where = ph === 'muat' ? tr('roWait') : ph === 'stop' ? tr('roStop', Math.round(x)) : `km ${Math.round(x)}`;
+    const gt = Math.round(g) === 0 ? tr('roLevel') : tr('roGap', g < 0 ? 'neg' : 'pos', dur(g), g < 0);
+    $('#readout').innerHTML = `<b>${clock(s)}</b> · ${where} · ${gt}` + (outB ? ` <span class="pill warn"><i></i>${tr('roOut')}</span>` : ` <span class="pill ok"><i></i>${tr('roOk')}</span>`);
     $('#b-now').hidden = t === NOW;
     $('#m-range').value = t; $('#m-t').textContent = clock(t);
   }
@@ -379,13 +489,13 @@
   /* ---------------- décomposition (waterfall) */
   const PIN = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></svg>';
   function updateDecomp() {
-    const d = decomp(REAL, G, t), r = gk === 'median' ? 'biasanya' : gk === 'best' ? 'terbaik' : 'kemarin';
+    const d = decomp(REAL, G, t), r = rr();
     const mu = Math.round(d.muat), st = Math.round(d.stop), tot = Math.round(d.g), dr = tot - mu - st;
     const vR = d.mR > 0 ? Math.round((d.x / d.mR) * 60) : 0, vG = d.mG > 0 ? Math.round((d.x / d.mG) * 60) : 0;
     const rows = [
-      { k: 'muat', l: 'Tunggu di zona muat', v: mu, sub: d.loading ? `${dur(d.wR)} berjalan · ${r} ${dur(d.wG)}` : `${dur(d.wR)} vs ${r} ${dur(d.wG)}` },
-      { k: 'stop', l: 'Berhenti di jalan', v: st, sub: `${dur(d.sR)} vs ${r} ${dur(d.sG)}` },
-      { k: 'drive', l: 'Mengemudi', v: dr, sub: d.x > 0 ? `laju ${vR} vs ${r} ${vG} km/jam` : 'belum berangkat' },
+      { k: 'muat', l: tr('wfMuat'), v: mu, sub: d.loading ? tr('wfRunning', dur(d.wR), r, dur(d.wG)) : `${dur(d.wR)} vs ${r} ${dur(d.wG)}` },
+      { k: 'stop', l: tr('wfStop'), v: st, sub: `${dur(d.sR)} vs ${r} ${dur(d.sG)}` },
+      { k: 'drive', l: tr('wfDrive'), v: dr, sub: d.x > 0 ? tr('wfDriveSub', vR, r, vG) : tr('wfNotYet') },
     ];
     const c = [0, mu, mu + st, tot];
     let lo = Math.min(...c), hi = Math.max(...c);
@@ -399,15 +509,15 @@
       h += `<button class="wf-row${sel === row.k ? ' sel' : ''}" data-k="${row.k}" aria-pressed="${sel === row.k}">
         <div class="wf-top"><span class="wf-l">${row.l}</span><span class="wf-v ${cls(row.v)}">${sgn(row.v)}</span></div>
         <div class="wf-track"><i class="z" style="left:${P(0)}%"></i>${i ? `<i class="lk" style="left:${P(a)}%"></i>` : ''}<div class="wf-bar ${cls(row.v)}" style="left:${P(Math.min(a, b))}%;width:${Math.abs(P(b) - P(a))}%"></div></div>
-        <div class="wf-sub"><span>${row.sub}</span><span class="loc">${PIN}${sel === row.k ? 'Di peta ↑' : 'Lihat di peta'}</span></div></button>`;
+        <div class="wf-sub"><span>${row.sub}</span><span class="loc">${PIN}${tr(sel === row.k ? 'wfOnMap' : 'wfShow')}</span></div></button>`;
     });
     h += `<button class="wf-row total" data-k="total">
-      <div class="wf-top"><span class="wf-l">= Selisih ${t === NOW ? 'sekarang' : 'pukul ' + clock(t)}</span><span class="wf-v ${cls(tot)}">${sgn(tot)}</span></div>
+      <div class="wf-top"><span class="wf-l">${tr('wfTotal', t === NOW, clock(t))}</span><span class="wf-v ${cls(tot)}">${sgn(tot)}</span></div>
       <div class="wf-track"><i class="z" style="left:${P(0)}%"></i><i class="lk" style="left:${P(tot)}%"></i><div class="wf-bar tot ${cls(tot)}" style="left:${P(Math.min(0, tot))}%;width:${Math.abs(P(tot) - P(0))}%"></div></div>
-      <div class="wf-sub"><span>${tot === 0 ? 'sejajar bayangan' : `${dur(tot)} ${tot < 0 ? 'di belakang' : 'di depan'} bayangan`}</span><span class="loc">${PIN}Truk & bayangan</span></div></button>`;
+      <div class="wf-sub"><span>${tot === 0 ? tr('roLevel') : tr('wfTotSub', dur(tot), tot < 0)}</span><span class="loc">${PIN}${tr('wfBoth')}</span></div></button>`;
     $('#wf').innerHTML = h;
     $('#decomp').classList.toggle('has-sel', !!sel);
-    $('#dc-t').textContent = `sampai km ${Math.round(d.x)} · ${clock(t)}`;
+    $('#dc-t').textContent = tr('dcT', Math.round(d.x), clock(t));
   }
   $('#wf').addEventListener('click', (e) => {
     const b = e.target.closest('.wf-row'); if (!b) return;
@@ -430,17 +540,17 @@
     updateDecomp(); updateMap();
     if (!k) { if (follow) cam(true); return; }
     setFollow(false);
-    const d = decomp(REAL, G, t), r = gk === 'median' ? 'biasanya' : gk === 'best' ? 'terbaik' : 'kemarin';
+    const d = decomp(REAL, G, t), r = rr();
     const co = (latlng, html, low) => L.marker(latlng, { interactive: false, zIndexOffset: 2000, icon: L.divIcon({ className: 'zl-ic0', iconSize: [0, 0], html: `<div class="callout${typeof low === 'string' ? ' ' + low : low ? ' low' : ''}">${html}</div>` }) }).addTo(hlLayer);
     const vcls = (v) => (v < 0 ? 'neg' : 'pos');
     if (k === 'muat') {
       L.circle(ll(0), { radius: 650, color: '#dd9314', weight: 2.5, fillColor: '#dd9314', fillOpacity: 0.12, interactive: false }).addTo(hlLayer);
-      co(ll(0), `<b>Tunggu muat ${dur(d.wR)}</b>${clock(0)}–${clock(REAL.wait)} · ${r} ${dur(d.wG)}<br><span class="${vcls(d.muat)}">${sgn(d.muat)}</span> vs bayangan`, 'upfar');
+      co(ll(0), `<b>${tr('coMuat', dur(d.wR))}</b>${clock(0)}–${clock(REAL.wait)} · ${r} ${dur(d.wG)}<br><span class="${vcls(d.muat)}">${sgn(d.muat)}</span> ${tr('coVs')}`, 'upfar');
       const z = 13.25; flyTo(map.unproject(map.project(ll(0), z).subtract([0, 36]), z), z);
     } else if (k === 'stop') {
       const pts = [];
-      for (const [kk, dd] of REAL.stops) { if (kk <= d.x) { const a = REAL.en[Math.round(kk / STEP)]; co(ll(kk), `<b>Truk berhenti ${dd} mnt</b>km ${kk} · ${clock(a)}–${clock(a + dd)}`); pts.push(ll(kk)); } }
-      for (const [kk, dd] of G.stops) { if (kk <= d.x) { co(ll(kk), `<b>Bayangan ${dd} mnt</b>km ${kk} · ${r}`, true); pts.push(ll(kk)); } }
+      for (const [kk, dd] of REAL.stops) { if (kk <= d.x) { const a = REAL.en[Math.round(kk / STEP)]; co(ll(kk), `<b>${tr('coTruckStop', dd)}</b>km ${kk} · ${clock(a)}–${clock(a + dd)}`); pts.push(ll(kk)); } }
+      for (const [kk, dd] of G.stops) { if (kk <= d.x) { co(ll(kk), `<b>${tr('coGhost', dd)}</b>km ${kk} · ${r}`, true); pts.push(ll(kk)); } }
       if (!pts.length) pts.push(ll(d.x));
       flyB(L.latLngBounds(pts).pad(0.5), Object.assign({ maxZoom: 12.5 }, LOC));
     } else if (k === 'drive') {
@@ -473,14 +583,14 @@
     if (opt.today != null) {
       const tx = X(opt.today), lx = clamp(tx, 46, W - 46);
       s += `<circle cx="${tx}" cy="${y}" r="7" fill="#007879" stroke="#fff" stroke-width="2.5"/>`;
-      s += `<text x="${lx}" y="${y - 15}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#211b16">hari ini ${dur(opt.today)}</text>`;
+      s += `<text x="${lx}" y="${y - 15}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#211b16">${tr('stToday', dur(opt.today))}</text>`;
     } else if (opt.eta != null) {
       s += `<text x="${X(med)}" y="${y - 15}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#004f51">median ${dur(med)}</text>`;
     }
     return s + '</svg>';
   }
   function updateZones() {
-    const r = gk === 'median' ? 'biasanya' : gk === 'best' ? 'terbaik' : 'kemarin';
+    const r = rr();
     const waits = TRIPS.map((T) => T.wait), stops = TRIPS.map((T) => T.stops.reduce((a, s) => a + s[1], 0)), unl = TRIPS.map((T) => T.unload);
     const sR = REAL.stops.reduce((a, s) => a + s[1], 0), sG = G.stops.reduce((a, s) => a + s[1], 0);
     const more = (arr, v) => arr.filter((a) => a < v).length;
@@ -488,27 +598,27 @@
     const gl = gk !== 'median';
     const etaBongkar = clock(REAL.arrive + G.unload);
     $('#zrows').innerHTML = `
-      <div class="zrow"><div class="zh"><span class="zic">M</span><div class="zt"><b>Zona muat</b><span>Batu Ampar · ${clock(0)}–${clock(REAL.wait)}</span></div>
+      <div class="zrow"><div class="zh"><span class="zic">${tr('zM')}</span><div class="zt"><b>${tr('zLoad')}</b><span>Batu Ampar · ${clock(0)}–${clock(REAL.wait)}</span></div>
         <div class="zv"><b class="${dW > 2 ? 'neg' : dW < -2 ? 'pos' : ''}">${dur(REAL.wait)}</b><span>${r} ${dur(G.wait)}</span></div></div>
         ${strip(waits, { max: 150, tick: 30, today: REAL.wait, ghost: G.wait, ghostLbl: gl })}
-        <p class="zverd">Lebih lama dari <b>${more(waits, REAL.wait)} dari 18</b> perjalanan bulan ini${dW > 0 ? ` — <b>${dur(dW)}</b> lebih lama dari ${r}` : ''}.</p></div>
-      <div class="zrow"><div class="zh"><span class="zic st">P</span><div class="zt"><b>Berhenti di jalan</b><span>1× di km 96 · total per perjalanan</span></div>
+        <p class="zverd">${tr('zv1', more(waits, REAL.wait), dW > 0 ? dur(dW) : '', gk)}</p></div>
+      <div class="zrow"><div class="zh"><span class="zic st">${tr('zP')}</span><div class="zt"><b>${tr('zStop')}</b><span>${tr('zStopSub')}</span></div>
         <div class="zv"><b class="${dS > 2 ? 'neg' : dS < -2 ? 'pos' : ''}">${dur(sR)}</b><span>${r} ${dur(sG)}</span></div></div>
         ${strip(stops, { max: 40, tick: 10, today: sR, ghost: sG, ghostLbl: gl })}
-        <p class="zverd">Lebih lama dari <b>${more(stops, sR)} dari 18</b> perjalanan — selisih kecil.</p></div>
-      <div class="zrow"><div class="zh"><span class="zic unl">B</span><div class="zt"><b>Zona bongkar</b><span>PT RAPP · antre + bongkar</span></div>
-        <div class="zv"><b class="na">belum tiba</b><span>${r} ${dur(G.unload)}</span></div></div>
+        <p class="zverd">${tr('zv2', more(stops, sR))}</p></div>
+      <div class="zrow"><div class="zh"><span class="zic unl">${tr('zB')}</span><div class="zt"><b>${tr('zUnl')}</b><span>${tr('zUnlSub')}</span></div>
+        <div class="zv"><b class="na">${tr('zNotYet')}</b><span>${r} ${dur(G.unload)}</span></div></div>
         ${strip(unl, { max: 100, tick: 20, ghost: G.unload, ghostLbl: gl, eta: true })}
-        <p class="zverd">Jika seperti ${r}: tiba ±${clock(REAL.arrive)}, selesai bongkar <b>±${etaBongkar}</b>.</p></div>`;
+        <p class="zverd">${tr('zv3', gk, clock(REAL.arrive), etaBongkar)}</p></div>`;
   }
 
   /* ---------------- lecture (play) */
   let raf = 0;
-  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('#b-play').textContent = '▶ Putar ulang'; $('#m-play').textContent = '▶'; }
+  function stopPlay() { playing = false; cancelAnimationFrame(raf); $('#b-play').textContent = '▶ ' + tr('replay'); $('#m-play').textContent = '▶'; }
   function play() {
     if (playing) { stopPlay(); return; }
     if (sel) setSel(null, true);
-    playing = true; setFollow(true); $('#b-play').textContent = '❚❚ Jeda'; $('#m-play').textContent = '❚❚';
+    playing = true; setFollow(true); $('#b-play').textContent = '❚❚ ' + tr('pause'); $('#m-play').textContent = '❚❚';
     if (t >= NOW) t = 0;
     const start = performance.now(), t0 = t, span = (NOW - t0) / NOW * 9000;
     const tick = (now) => {
@@ -552,9 +662,32 @@
 
   function updateAll() { updateMap(); updateRace(); updateCursor(); updateDecomp(); }
 
+  /* ---------------- langue : textes statiques (data-i18n*) + re-rendu complet sans rechargement */
+  function applyStatic() {
+    document.documentElement.lang = LANG; document.title = tr('docTitle');
+    document.querySelectorAll('[data-i18n]').forEach((e) => { e.textContent = tr(e.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-html]').forEach((e) => { e.innerHTML = tr(e.dataset.i18nHtml); });
+    document.querySelectorAll('[data-i18n-aria]').forEach((e) => { e.setAttribute('aria-label', tr(e.dataset.i18nAria)); });
+    document.querySelectorAll('#b-lang [data-l]').forEach((e) => e.classList.toggle('on', e.dataset.l === LANG));
+    $('#b-lang').setAttribute('aria-label', tr('langAria'));
+    $('#b-play').textContent = playing ? '❚❚ ' + tr('pause') : '▶ ' + tr('replay');
+  }
+  function setLang(l) {
+    if (l === LANG || !I18N[l]) return;
+    LANG = l;
+    try { localStorage.setItem('muatku.lang', l); } catch (e) { /* stockage indisponible */ }
+    const u = new URL(location.href); u.searchParams.set('lang', l); history.replaceState(history.state, '', u);
+    applyStatic();
+    ZMK.forEach(([m, name, unl]) => m.setIcon(zIcon(name, unl)));
+    ghostM.setIcon(ghIcon());
+    conclusion(); drawChart(true); updateZones(); updateAll();
+    if (sel) setSel(sel);
+  }
+  $('#b-lang').onclick = () => setLang(LANG === 'id' ? 'en' : 'id');
+
   /* ---------------- init */
-  compute(); drawStops(); conclusion(); drawChart(); updateZones();
+  applyStatic(); compute(); drawStops(); conclusion(); drawChart(); updateZones();
   map.fitBounds(L.latLngBounds([ll(pos(REAL, NOW)), ll(pos(G, NOW))]).pad(0.25), { paddingTopLeft: PADTL, paddingBottomRight: PADBR, maxZoom: 13, animate: false });
   updateAll();
-  window.__Q = { map, ll, setT: (s) => { stopPlay(); setT(s); }, setSel: (k) => setSel(k), ghost: (k) => document.querySelector(`.seg button[data-g="${k}"]`).click(), solo: setSolo, C: () => C, REAL, MEDIAN, decomp: (s) => decomp(REAL, G, s) };
+  window.__Q = { map, ll, setT: (s) => { stopPlay(); setT(s); }, setSel: (k) => setSel(k), ghost: (k) => document.querySelector(`.seg button[data-g="${k}"]`).click(), solo: setSolo, lang: setLang, C: () => C, REAL, MEDIAN, decomp: (s) => decomp(REAL, G, s) };
 })();
